@@ -3,9 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   QrCode,
-  Radio,
   CheckCircle2,
-  AlertCircle,
   Play,
   Square,
   RefreshCw,
@@ -13,7 +11,12 @@ import {
   ShieldCheck,
   Zap,
   HelpCircle,
+  Loader2,
 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 interface SessionInfo {
   exists: boolean;
@@ -28,7 +31,7 @@ export default function WahaConnectionWizard({ onStatusChange }: { onStatusChang
   const [sessionInfo, setSessionInfo] = useState<SessionInfo>({ exists: false, status: "CHECKING" });
   const [loading, setLoading] = useState(true);
   const [startingSession, setStartingSession] = useState(false);
-  const [qrKey, setQrKey] = useState(Date.now());
+  const [qrKey, setQrKey] = useState(0);
 
   const checkStatus = async () => {
     try {
@@ -49,7 +52,6 @@ export default function WahaConnectionWizard({ onStatusChange }: { onStatusChang
 
   useEffect(() => {
     checkStatus();
-    // Poll every 3 seconds if scanning QR or starting session
     const interval = setInterval(() => {
       checkStatus();
       setQrKey(Date.now());
@@ -90,158 +92,144 @@ export default function WahaConnectionWizard({ onStatusChange }: { onStatusChang
   const needsStart = sessionInfo.status === "NOT_CREATED" || sessionInfo.status === "STOPPED" || !sessionInfo.exists;
 
   return (
-    <div className="glass-card rounded-2xl p-6 md:p-8 border border-slate-800 relative overflow-hidden transition-all">
-      {/* Background Ambient Light */}
-      {isConnected ? (
-        <div className="absolute -right-16 -top-16 h-72 w-72 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
-      ) : needsQR ? (
-        <div className="absolute -right-16 -top-16 h-72 w-72 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
-      ) : (
-        <div className="absolute -right-16 -top-16 h-72 w-72 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
-      )}
-
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-6 border-b border-slate-800/80">
-        <div className="flex items-center gap-4">
-          <div
-            className={`h-12 w-12 rounded-2xl flex items-center justify-center border shadow-lg ${
-              isConnected
-                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                : needsQR
-                ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
-                : "bg-slate-800 border-slate-700 text-slate-400"
-            }`}
-          >
-            {isConnected ? (
-              <CheckCircle2 className="h-6 w-6" />
-            ) : needsQR ? (
-              <QrCode className="h-6 w-6 animate-pulse" />
-            ) : (
-              <Smartphone className="h-6 w-6" />
-            )}
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-white tracking-tight">Conexão WhatsApp</h2>
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div
+              className={`flex size-12 items-center justify-center rounded-full border ${
+                isConnected
+                  ? "bg-green-500/10 border-green-500/30 text-green-500"
+                  : needsQR
+                  ? "bg-amber-500/10 border-amber-500/30 text-amber-500"
+                  : "bg-muted border-border text-muted-foreground"
+              }`}
+            >
               {isConnected ? (
-                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full badge-glow-green flex items-center gap-1">
-                  <Radio className="h-3 w-3 animate-ping text-emerald-400" /> Operacional
-                </span>
+                <CheckCircle2 className="size-6" />
               ) : needsQR ? (
-                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center gap-1">
-                  <QrCode className="h-3 w-3" /> Escanear QR Code
-                </span>
+                <QrCode className="size-6 animate-pulse" />
               ) : (
-                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
-                  Desconectado
-                </span>
+                <Smartphone className="size-6" />
               )}
             </div>
-            <p className="text-xs text-slate-400 mt-1">
-              {isConnected
-                ? `Conectado como ${sessionInfo.me?.pushName || "WhatsApp Bot"} (${sessionInfo.me?.id || "Sessão Ativa"})`
-                : needsQR
-                ? "Escaneie o código abaixo no seu aplicativo do WhatsApp"
-                : "Inicie a sessão para conectar seu WhatsApp e capturar leads automaticamente"}
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-semibold tracking-tight">
+                  Conexão WhatsApp
+                </h2>
+                {isConnected ? (
+                  <Badge variant="default" className="bg-green-500/10 text-green-600 border-green-500/20 hover:bg-green-500/10">
+                    <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                    Operacional
+                  </Badge>
+                ) : needsQR ? (
+                  <Badge variant="outline" className="border-amber-500/30 text-amber-600">
+                    Escanear QR Code
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary">Desconectado</Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {isConnected
+                  ? `Conectado como ${sessionInfo.me?.pushName || "WhatsApp Bot"} (${sessionInfo.me?.id || "Sessão Ativa"})`
+                  : needsQR
+                  ? "Escaneie o código abaixo no seu aplicativo do WhatsApp"
+                  : "Inicie a sessão para conectar seu WhatsApp e capturar leads automaticamente"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {isConnected && (
+              <Button variant="destructive" size="sm" onClick={handleStopSession}>
+                <Square className="size-3.5" />
+                Desconectar
+              </Button>
+            )}
+
+            {(needsStart || needsQR) && (
+              <Button size="sm" onClick={handleStartSession} disabled={startingSession}>
+                {startingSession ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Play className="size-3.5" />
+                )}
+                {startingSession ? "Iniciando..." : needsQR ? "Reiniciar Sessão" : "Iniciar Conexão"}
+              </Button>
+            )}
+
+            <Button variant="outline" size="icon-sm" onClick={checkStatus} title="Atualizar Status">
+              <RefreshCw className={`size-3.5 ${loading ? "animate-spin" : ""}`} />
+            </Button>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-3">
-          {isConnected && (
-            <button
-              onClick={handleStopSession}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-semibold transition-all"
-            >
-              <Square className="h-3.5 w-3.5" /> Desconectar
-            </button>
-          )}
+        <Separator className="my-4" />
 
-          {(needsStart || needsQR) && (
-            <button
-              onClick={handleStartSession}
-              disabled={startingSession}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-sm font-semibold shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.02] disabled:opacity-50"
-            >
-              <Play className={`h-4 w-4 ${startingSession ? "animate-spin" : ""}`} />
-              {startingSession ? "Iniciando..." : needsQR ? "Reiniciar Sessão" : "Iniciar Conexão WhatsApp"}
-            </button>
-          )}
-
-          <button
-            onClick={checkStatus}
-            className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition-all"
-            title="Atualizar Status"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin text-emerald-400" : ""}`} />
-          </button>
-        </div>
-      </div>
-
-      {/* Main Wizard Area */}
-      {isConnected ? (
-        <div className="mt-6 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="h-5 w-5 text-emerald-400 flex-shrink-0" />
-            <span className="text-xs text-slate-300">
-              Sessão ativa e webhook registrado em <code className="text-emerald-400 bg-slate-950 px-2 py-0.5 rounded font-mono">http://backend:8000/webhook/waha</code>. Todas as mensagens recebidas serão capturadas automaticamente!
+        {isConnected ? (
+          <div className="flex items-center gap-3 rounded-lg border border-green-500/20 bg-green-500/5 p-3">
+            <ShieldCheck className="size-4 text-green-500 shrink-0" />
+            <span className="text-xs text-muted-foreground">
+              Sessão ativa e webhook registrado em{" "}
+              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-green-600">
+                http://backend:8000/webhook/waha
+              </code>
+              . Todas as mensagens recebidas serão capturadas automaticamente!
             </span>
           </div>
-        </div>
-      ) : needsQR ? (
-        <div className="mt-6 flex flex-col md:flex-row items-center gap-8 bg-slate-900/60 p-6 rounded-xl border border-slate-800">
-          {/* QR Container */}
-          <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-500" />
-            <div className="relative bg-white p-4 rounded-2xl shadow-xl flex items-center justify-center">
+        ) : needsQR ? (
+          <div className="flex flex-col md:flex-row items-center gap-6">
+            <div className="rounded-xl border bg-muted/50 p-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={`http://localhost:8000/waha/qr?t=${qrKey}`}
                 alt="WhatsApp QR Code"
-                className="w-52 h-52 object-contain"
+                className="w-48 h-48 object-contain rounded-lg"
                 onError={(e) => {
-                  // If image fails, retry after short delay
                   setTimeout(() => setQrKey(Date.now()), 2000);
                 }}
               />
             </div>
+            <div className="flex-1 space-y-3">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <Zap className="size-4 text-amber-500" /> Passo a Passo para Conectar:
+              </h3>
+              <ol className="space-y-2 text-xs text-muted-foreground list-decimal list-inside">
+                <li className="p-2 rounded-lg bg-muted/50 border">
+                  Abra o aplicativo do <strong className="text-foreground">WhatsApp</strong> no seu celular.
+                </li>
+                <li className="p-2 rounded-lg bg-muted/50 border">
+                  Toque em <strong className="text-foreground">Menu (⋮)</strong> ou{" "}
+                  <strong className="text-foreground">Configurações</strong> &gt;{" "}
+                  <strong className="text-foreground">Aparelhos conectados</strong>.
+                </li>
+                <li className="p-2 rounded-lg bg-muted/50 border">
+                  Toque em <strong className="text-foreground">Conectar um aparelho</strong> e aponte a câmera para o QR Code ao lado.
+                </li>
+              </ol>
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1 pt-1">
+                <HelpCircle className="size-3.5" /> O código QR é atualizado automaticamente a cada poucos segundos.
+              </p>
+            </div>
           </div>
-
-          {/* Instructions */}
-          <div className="flex-1 space-y-4">
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Zap className="h-4 w-4 text-emerald-400" /> Passo a Passo para Conectar:
-            </h3>
-            <ol className="space-y-3 text-xs text-slate-300 list-decimal list-inside leading-relaxed">
-              <li className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80">
-                Abra o aplicativo do <strong>WhatsApp</strong> no seu celular.
-              </li>
-              <li className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80">
-                Toque em <strong>Menu (⋮)</strong> ou <strong>Configurações</strong> &gt; <strong>Aparelhos conectados</strong>.
-              </li>
-              <li className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80">
-                Toque em <strong>Conectar um aparelho</strong> e aponte a câmera para o QR Code ao lado.
-              </li>
-            </ol>
-            <p className="text-[11px] text-slate-500 flex items-center gap-1 pt-1">
-              <HelpCircle className="h-3.5 w-3.5 text-slate-400" /> O código QR é atualizado automaticamente a cada poucos segundos.
+        ) : (
+          <div className="text-center py-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              Nenhuma sessão ativa detectada. Clique no botão abaixo para inicializar o engine do WAHA.
             </p>
+            <Button onClick={handleStartSession} disabled={startingSession}>
+              {startingSession ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Play className="size-3.5" />
+              )}
+              {startingSession ? "Iniciando Sessão..." : "Iniciar Sessão WhatsApp"}
+            </Button>
           </div>
-        </div>
-      ) : (
-        <div className="mt-6 p-6 rounded-xl bg-slate-900/40 border border-slate-800/80 text-center">
-          <p className="text-sm text-slate-300 mb-4">
-            Nenhuma sessão ativa detectada. Clique no botão abaixo para inicializar o engine do WAHA e conectar seu número.
-          </p>
-          <button
-            onClick={handleStartSession}
-            disabled={startingSession}
-            className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-semibold text-sm shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.02]"
-          >
-            {startingSession ? "Iniciando Sessão..." : "Iniciar Sessão WhatsApp"}
-          </button>
-        </div>
-      )}
-    </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

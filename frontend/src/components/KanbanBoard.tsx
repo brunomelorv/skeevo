@@ -9,8 +9,8 @@ import {
   XCircle,
   Phone,
   Clock,
-  MoreVertical,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export interface Lead {
   id: number;
@@ -34,41 +34,36 @@ const COLUMNS = [
     id: "novo",
     label: "Novo",
     icon: Inbox,
-    color: "emerald",
-    badgeBg: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-    headerBg: "border-t-emerald-500",
+    color: "bg-chart-1",
+    badgeClass: "bg-chart-1/10 text-chart-1 border-chart-1/20",
   },
   {
     id: "em_atendimento",
     label: "Em Atendimento",
     icon: MessageSquare,
-    color: "cyan",
-    badgeBg: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
-    headerBg: "border-t-cyan-500",
+    color: "bg-chart-2",
+    badgeClass: "bg-chart-2/10 text-chart-2 border-chart-2/20",
   },
   {
     id: "qualificado",
     label: "Qualificado",
     icon: Star,
-    color: "amber",
-    badgeBg: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-    headerBg: "border-t-amber-500",
+    color: "bg-chart-3",
+    badgeClass: "bg-chart-3/10 text-chart-3 border-chart-3/20",
   },
   {
     id: "ganho",
     label: "Ganho",
     icon: Trophy,
-    color: "green",
-    badgeBg: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-    headerBg: "border-t-emerald-400",
+    color: "bg-chart-4",
+    badgeClass: "bg-chart-4/10 text-chart-4 border-chart-4/20",
   },
   {
     id: "perdido",
     label: "Perdido",
     icon: XCircle,
-    color: "red",
-    badgeBg: "bg-red-500/10 text-red-400 border-red-500/20",
-    headerBg: "border-t-red-500",
+    color: "bg-chart-5",
+    badgeClass: "bg-chart-5/10 text-chart-5 border-chart-5/20",
   },
 ];
 
@@ -105,23 +100,23 @@ export default function KanbanBoard({ leads, onOpenLead, onStatusChange }: Kanba
             key={col.id}
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, col.id)}
-            className={`glass-card rounded-2xl border border-slate-800 border-t-4 ${col.headerBg} p-4 min-h-[500px] flex flex-col transition-all bg-slate-950/40`}
+            className="rounded-xl border bg-card text-card-foreground flex flex-col"
           >
-            {/* Column Header */}
-            <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800/80">
-              <div className="flex items-center gap-2">
-                <Icon className="h-4 w-4 text-slate-300" />
-                <span className="font-bold text-sm text-white">{col.label}</span>
+            <div className={`p-3 border-b border-t-2 ${col.color} rounded-t-xl`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Icon className="size-4 text-muted-foreground" />
+                  <span className="font-semibold text-sm">{col.label}</span>
+                </div>
+                <Badge variant="outline" className={`text-xs font-medium px-1.5 py-0 ${col.badgeClass}`}>
+                  {colLeads.length}
+                </Badge>
               </div>
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${col.badgeBg}`}>
-                {colLeads.length}
-              </span>
             </div>
 
-            {/* Cards List */}
-            <div className="flex-1 space-y-3">
+            <div className="flex-1 p-2 space-y-2 min-h-[400px]">
               {colLeads.length === 0 ? (
-                <div className="h-32 border-2 border-dashed border-slate-800/60 rounded-xl flex items-center justify-center text-xs text-slate-500">
+                <div className="h-24 border border-dashed rounded-lg flex items-center justify-center text-xs text-muted-foreground">
                   Nenhum lead aqui
                 </div>
               ) : (
@@ -131,57 +126,39 @@ export default function KanbanBoard({ leads, onOpenLead, onStatusChange }: Kanba
                     draggable
                     onDragStart={(e) => handleDragStart(e, lead.id)}
                     onClick={() => onOpenLead(lead)}
-                    className={`p-4 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-800 shadow-md cursor-grab active:cursor-grabbing transition-all hover:scale-[1.01] group relative ${
+                    className={`p-3 rounded-lg border bg-card hover:bg-accent/50 cursor-grab active:cursor-grabbing transition-colors ${
                       draggedLeadId === lead.id ? "opacity-40" : ""
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
                       <div className="flex items-center gap-2">
-                        <div className="h-7 w-7 rounded-lg bg-emerald-500/20 text-emerald-400 font-bold text-xs flex items-center justify-center">
+                        <div className="flex size-7 items-center justify-center rounded-md bg-primary/10 text-primary text-xs font-bold">
                           {(lead.push_name || lead.phone)[0].toUpperCase()}
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors">
+                          <p className="text-xs font-semibold">
                             {lead.push_name || "Lead sem nome"}
                           </p>
-                          <p className="text-[11px] font-mono text-slate-400 flex items-center gap-1">
-                            <Phone className="h-3 w-3 text-slate-500" /> {lead.phone}
+                          <p className="text-[11px] font-mono text-muted-foreground flex items-center gap-1">
+                            <Phone className="size-2.5" /> {lead.phone}
                           </p>
                         </div>
                       </div>
-
-                      {/* Quick Status Select */}
-                      <select
-                        value={lead.status}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          onStatusChange(lead.id, e.target.value);
-                        }}
-                        className="bg-slate-950 text-slate-300 text-[10px] rounded px-1.5 py-1 border border-slate-800 focus:outline-none focus:border-emerald-500"
-                      >
-                        {COLUMNS.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.label}
-                          </option>
-                        ))}
-                      </select>
                     </div>
 
-                    {/* First message preview */}
-                    <p className="text-xs text-slate-300 line-clamp-2 bg-slate-950/50 p-2 rounded-lg border border-slate-800/60 mb-2">
+                    <p className="text-xs text-muted-foreground line-clamp-2 bg-muted/50 p-2 rounded-md mb-2">
                       {lead.first_message || "Sem mensagem"}
                     </p>
 
-                    <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1">
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1">
                       <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
+                        <Clock className="size-2.5" />
                         {new Date(lead.created_at).toLocaleDateString("pt-BR", {
                           day: "2-digit",
                           month: "2-digit",
                         })}
                       </span>
-                      <span className="text-emerald-400 font-medium group-hover:underline">Ver Conversa &rarr;</span>
+                      <span className="text-primary font-medium">Ver Conversa &rarr;</span>
                     </div>
                   </div>
                 ))
