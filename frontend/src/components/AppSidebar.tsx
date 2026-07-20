@@ -7,6 +7,7 @@ import {
   Users,
   MessageSquare,
   Settings,
+  Bot,
 } from "lucide-react";
 import {
   Sidebar,
@@ -24,6 +25,7 @@ import {
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/leads", label: "Leads", icon: Users },
+  { href: "/agent", label: "Agente de IA", icon: Bot },
 ];
 
 export default function AppSidebar() {
