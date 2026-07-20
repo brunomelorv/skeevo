@@ -21,6 +21,10 @@ export default function AgentPage() {
     openai_api_key: "",
     openai_api_key_masked: "",
     has_api_key: false,
+    simulate_typing: true,
+    split_long_messages: true,
+    min_typing_delay: 3,
+    max_typing_delay: 8,
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -88,6 +92,10 @@ export default function AgentPage() {
         instrucoes: settings.instrucoes,
         contexto: settings.contexto,
         exemplos: settings.exemplos || [],
+        simulate_typing: settings.simulate_typing ?? true,
+        split_long_messages: settings.split_long_messages ?? true,
+        min_typing_delay: settings.min_typing_delay ?? 3,
+        max_typing_delay: settings.max_typing_delay ?? 8,
       };
 
       if (settings.openai_api_key && settings.openai_api_key.trim()) {

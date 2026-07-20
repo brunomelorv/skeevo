@@ -16,6 +16,7 @@ import {
   FileText,
   MessageSquare,
   BookOpen,
+  Clock,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -41,6 +42,10 @@ export interface AgentSettingsData {
   openai_api_key?: string;
   openai_api_key_masked?: string;
   has_api_key?: boolean;
+  simulate_typing?: boolean;
+  split_long_messages?: boolean;
+  min_typing_delay?: number;
+  max_typing_delay?: number;
 }
 
 interface AgentFormProps {
@@ -302,6 +307,156 @@ export default function AgentForm({
                 Nenhum exemplo cadastrado. Adicione exemplos para guiar o estilo de resposta da IA.
               </div>
             )}
+          </div>
+        </CardContent>
+
+        <CardFooter className="border-t pt-4 flex justify-end">
+          <Button
+            type="button"
+            onClick={onSave}
+            disabled={isSaving}
+            className="gap-2 font-medium"
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Salvando...
+              </>
+            ) : (
+              <>
+                <Save className="size-4" />
+                Salvar Configurações
+              </>
+            )}
+          </Button>
+        </CardFooter>
+      </Card>
+
+      {/* Humanization Card */}
+      <Card className="shadow-xs border-border">
+        <CardHeader className="pb-4 border-b">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500">
+              <Sparkles className="size-5" />
+            </div>
+            <div>
+              <CardTitle className="text-base font-semibold">
+                Humanização e Comportamento Orgânico
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Simule comportamento humano natural com atrasos de digitação e envio fracionado
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="pt-6 space-y-6">
+          {/* Switch 1: simulate_typing */}
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5">
+              <label className="text-sm font-medium leading-none cursor-pointer">
+                Simular status &quot;Digitando...&quot; no WhatsApp
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Exibe a notificação de digitação no aplicativo do lead antes de entregar a mensagem.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={settings.simulate_typing ?? true}
+              onClick={() =>
+                onChange("simulate_typing", !(settings.simulate_typing ?? true))
+              }
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                (settings.simulate_typing ?? true)
+                  ? "bg-emerald-600"
+                  : "bg-zinc-400 dark:bg-zinc-700"
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                  (settings.simulate_typing ?? true)
+                    ? "translate-x-5"
+                    : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Switch 2: split_long_messages */}
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5">
+              <label className="text-sm font-medium leading-none cursor-pointer">
+                Dividir respostas longas em múltiplos balões
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Quebra parágrafos da resposta em mensagens curtas enviadas em sequência.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={settings.split_long_messages ?? true}
+              onClick={() =>
+                onChange(
+                  "split_long_messages",
+                  !(settings.split_long_messages ?? true)
+                )
+              }
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                (settings.split_long_messages ?? true)
+                  ? "bg-emerald-600"
+                  : "bg-zinc-400 dark:bg-zinc-700"
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                  (settings.split_long_messages ?? true)
+                    ? "translate-x-5"
+                    : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Number Inputs: min_typing_delay & max_typing_delay */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-border/60">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium flex items-center gap-1.5 text-muted-foreground">
+                <Clock className="size-3.5 text-blue-500" />
+                Delay Mínimo de Digitação (segundos)
+              </label>
+              <Input
+                type="number"
+                min={1}
+                max={30}
+                value={settings.min_typing_delay ?? 3}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  onChange("min_typing_delay", isNaN(val) ? 1 : Math.max(1, Math.min(30, val)));
+                }}
+                className="h-9 text-sm"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium flex items-center gap-1.5 text-muted-foreground">
+                <Clock className="size-3.5 text-indigo-500" />
+                Delay Máximo de Digitação (segundos)
+              </label>
+              <Input
+                type="number"
+                min={1}
+                max={60}
+                value={settings.max_typing_delay ?? 8}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  onChange("max_typing_delay", isNaN(val) ? 1 : Math.max(1, Math.min(60, val)));
+                }}
+                className="h-9 text-sm"
+              />
+            </div>
           </div>
         </CardContent>
 
