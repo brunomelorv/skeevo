@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.services.agent_service import process_incoming_lead_message
 from app.services.lead_service import upsert_lead
 
 router = APIRouter()
@@ -24,7 +25,7 @@ async def webhook_waha(request: Request, db: AsyncSession = Depends(get_db)):
 
     push_name = msg.get("_data", {}).get("notifyName") or payload.get("me", {}).get("pushName")
 
-    await upsert_lead(
+    lead = await upsert_lead(
         db=db,
         phone=phone,
         body=msg.get("body", ""),
@@ -34,4 +35,7 @@ async def webhook_waha(request: Request, db: AsyncSession = Depends(get_db)):
         push_name=push_name
     )
 
+    await process_incoming_lead_message(db=db, lead_id=lead.id, chat_id=msg.get("from", ""))
+
     return {"status": "ok"}
+
