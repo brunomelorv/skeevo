@@ -47,3 +47,41 @@ class AgentSettings(Base):
     max_history_messages = Column(Integer, default=15)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
 
+
+class FollowupConfig(Base):
+    __tablename__ = "followup_configs"
+
+    id = Column(Integer, primary_key=True, index=True, default=1)
+    is_enabled = Column(Boolean, default=False)
+    target_statuses = Column(JSON, default=lambda: ["novo", "em_atendimento"])
+    window_start = Column(String(5), default="08:00")
+    window_end = Column(String(5), default="20:00")
+    min_interval_minutes = Column(Integer, default=4)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
+
+
+class FollowupStep(Base):
+    __tablename__ = "followup_steps"
+
+    id = Column(Integer, primary_key=True, index=True)
+    step_number = Column(Integer, nullable=False)
+    delay_hours = Column(Integer, nullable=False)
+    mode = Column(String(20), default="text")
+    content = Column(Text, default="")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class LeadFollowup(Base):
+    __tablename__ = "lead_followups"
+
+    id = Column(Integer, primary_key=True, index=True)
+    lead_id = Column(Integer, ForeignKey("leads.id"), nullable=False, index=True)
+    step_id = Column(Integer, ForeignKey("followup_steps.id"), nullable=True, index=True)
+    step_number = Column(Integer, nullable=False)
+    scheduled_at = Column(DateTime(timezone=True), nullable=False)
+    status = Column(String(20), default="scheduled")
+    sent_at = Column(DateTime(timezone=True), nullable=True)
+    cancel_reason = Column(String(255), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+

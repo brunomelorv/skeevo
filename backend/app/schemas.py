@@ -74,3 +74,51 @@ class MessageResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
+class FollowupStepSchema(BaseModel):
+    id: Optional[int] = None
+    step_number: int
+    delay_hours: int
+    mode: str = "text"
+    content: str = ""
+
+    class Config:
+        from_attributes = True
+
+
+class FollowupConfigBase(BaseModel):
+    is_enabled: bool = False
+    target_statuses: List[str] = ["novo", "em_atendimento"]
+    window_start: str = "08:00"
+    window_end: str = "20:00"
+    min_interval_minutes: int = 4
+    steps: List[FollowupStepSchema] = []
+
+
+class FollowupConfigRead(FollowupConfigBase):
+    id: int = 1
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class FollowupConfigUpdate(FollowupConfigBase):
+    pass
+
+
+class LeadFollowupRead(BaseModel):
+    id: int
+    lead_id: int
+    step_id: Optional[int] = None
+    step_number: int
+    scheduled_at: Optional[datetime] = None
+    status: str = "scheduled"
+    sent_at: Optional[datetime] = None
+    cancel_reason: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
