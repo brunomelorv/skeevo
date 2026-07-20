@@ -1,7 +1,9 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from app.models import AgentSettings, Message
+from app.models import AgentSettings, Message, Lead
 from app.services.agent_service import send_waha_message, process_incoming_lead_message
+from app.services.lead_service import upsert_lead
+
 
 
 @pytest.mark.asyncio
@@ -144,3 +146,64 @@ async def test_send_waha_message():
             "chatId": "5511999999999@c.us",
             "text": "Mensagem de teste",
         }
+
+
+@pytest.mark.asyncio
+async def test_upsert_lead_deduplication():
+    db = AsyncMock()
+    db.add = MagicMock()
+    added_objects = []
+    db.add.side_effect = lambda obj: added_objects.append(obj)
+
+
+    # First call setup: message_id does not exist, lead does not exist
+    mock_msg_res1 = MagicMock()
+    mock_msg_res1.scalar_one_or_none.return_value = None
+
+    mock_lead_res1 = MagicMock()
+    mock_lead_res1.scalar_one_or_none.return_value = None
+
+    # Second call setup: message_id exists
+    existing_msg = Message(id=1, lead_id=10, message_id="msg_duplicate_123")
+    mock_msg_res2 = MagicMock()
+    mock_msg_res2.scalar_one_or_none.return_value = existing_msg
+
+    existing_lead = Lead(id=10, phone="5511999999999")
+    mock_lead_res2 = MagicMock()
+    mock_lead_res2.scalar_one_or_none.return_value = existing_lead
+
+    db.execute.side_effect = [
+        mock_msg_res1,   # 1st call msg check
+        mock_lead_res1,  # 1st call lead check
+        mock_msg_res2,   # 2nd call msg check
+        mock_lead_res2,  # 2nd call lead check
+    ]
+
+    # Call 1: First time with msg_duplicate_123
+    lead1, is_new1 = await upsert_lead(
+        db,
+        phone="5511999999999",
+        body="Olá",
+        message_id="msg_duplicate_123",
+        chat_id="5511999999999@c.us",
+        timestamp=1700000000,
+    )
+
+    assert is_new1 is True
+    assert len(added_objects) == 2  # Lead and Message added
+
+    # Call 2: Second time with same msg_duplicate_123
+    lead2, is_new2 = await upsert_lead(
+        db,
+        phone="5511999999999",
+        body="Olá",
+        message_id="msg_duplicate_123",
+        chat_id="5511999999999@c.us",
+        timestamp=1700000000,
+    )
+
+    assert is_new2 is False
+    assert lead2 == existing_lead
+    # Ensure no new objects were added in the second call
+    assert len(added_objects) == 2
+

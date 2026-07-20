@@ -14,6 +14,14 @@ async def upsert_lead(
     timestamp: int,
     push_name: str = None
 ):
+    if message_id:
+        existing_msg_res = await db.execute(select(Message).where(Message.message_id == message_id))
+        existing_msg = existing_msg_res.scalar_one_or_none()
+        if existing_msg:
+            lead_res = await db.execute(select(Lead).where(Lead.phone == phone))
+            lead = lead_res.scalar_one_or_none()
+            return lead, False
+
     result = await db.execute(select(Lead).where(Lead.phone == phone))
     lead = result.scalar_one_or_none()
 
@@ -45,4 +53,5 @@ async def upsert_lead(
     db.add(msg)
     await db.commit()
 
-    return lead
+    return lead, True
+
