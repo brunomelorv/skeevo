@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Criar o prompt inicial</title>
+  <style>
+    :root {
+      --ink: #111111;
+      --muted: #666666;
+      --paper: #f7f7f3;
+      --panel: #ffffff;
+      --line: #d8d8d2;
+      --soft-line: #ecece7;
+      --accent: #2f6d4f;
+      --accent-soft: #e8f1ec;
+      --shadow: 0 18px 60px rgba(0, 0, 0, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(17, 17, 17, 0.07) 1px, transparent 1px) 0 0 / 54px 54px,
+        var(--paper);
+      font-family: Inter, Helvetica Neue, Arial, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    button,
+    textarea,
+    input {
+      font: inherit;
+      letter-spacing: 0;
+    }
+
+    .shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 286px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      padding: 26px 20px;
+      border-right: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.76);
+      backdrop-filter: blur(12px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--ink);
+      background: var(--ink);
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .brand-title {
+      display: grid;
+      gap: 3px;
+    }
+
+    .brand-title strong {
+      font-size: 14px;
+      line-height: 1.15;
+    }
+
+    .brand-title span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .nav {
+      display: grid;
+      gap: 8px;
+    }
+
+    .nav a {
+      display: grid;
+      gap: 2px;
+      min-height: 46px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .nav a:hover,
+    .nav a:focus-visible {
+      border-color: var(--ink);
+      outline: 0;
+    }
+
+    .nav strong {
+      font-size: 13px;
+      line-height: 1.2;
+    }
+
+    .nav span {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.3;
+    }
+
+    .side-note {
+      margin-top: auto;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .content {
+      min-width: 0;
+      padding: 30px clamp(22px, 5vw, 64px) 64px;
+    }
+
+    .page {
+      max-width: 1060px;
+      margin: 0 auto;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 4;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin: -30px calc(clamp(22px, 5vw, 64px) * -1) 22px;
+      padding: 16px clamp(22px, 5vw, 64px);
+      border-bottom: 1px solid rgba(216, 216, 210, 0.9);
+      background: rgba(247, 247, 243, 0.92);
+      backdrop-filter: blur(12px);
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .action {
+      min-height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 13px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--ink);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .action.primary {
+      border-color: var(--ink);
+      background: var(--ink);
+      color: #ffffff;
+    }
+
+    .action:hover,
+    .action:focus-visible {
+      border-color: var(--ink);
+      outline: 0;
+    }
+
+    .hero,
+    .section {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .hero {
+      padding: 34px;
+      box-shadow: var(--shadow);
+    }
+
+    .lesson-label {
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      max-width: 760px;
+      font-size: clamp(34px, 5vw, 52px);
+      line-height: 0.98;
+      font-weight: 900;
+    }
+
+    h2 {
+      font-size: clamp(24px, 3vw, 32px);
+      line-height: 1.1;
+      font-weight: 880;
+    }
+
+    h3 {
+      font-size: 18px;
+      line-height: 1.2;
+      font-weight: 850;
+    }
+
+    .lead {
+      max-width: 760px;
+      margin-top: 16px;
+      color: #333333;
+      font-size: 18px;
+      line-height: 1.5;
+    }
+
+    .section {
+      margin-top: 22px;
+      padding: 28px;
+    }
+
+    .section-kicker {
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .section-copy {
+      max-width: 760px;
+      margin-top: 12px;
+      color: #363634;
+      font-size: 16px;
+      line-height: 1.55;
+    }
+
+    .prompt-panel {
+      overflow: hidden;
+      margin-top: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+    }
+
+    .panel-title {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfbf8;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    pre {
+      margin: 0;
+      padding: 16px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: var(--ink);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .block-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .block {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+      min-height: 164px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfbf8;
+    }
+
+    .number {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--ink);
+      border-radius: 999px;
+      background: #ffffff;
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .block p {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .task {
+      margin-top: 18px;
+      padding: 18px;
+      border: 1px solid #b7d4c2;
+      border-radius: 8px;
+      background: var(--accent-soft);
+    }
+
+    .task strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 16px;
+    }
+
+    .task p {
+      color: #284437;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .editor-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(360px, 0.92fr);
+      gap: 16px;
+      align-items: start;
+      margin-top: 18px;
+    }
+
+    .editor,
+    .preview {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+
+    .editor {
+      display: grid;
+      gap: 14px;
+      padding: 18px;
+    }
+
+    label {
+      display: grid;
+      gap: 7px;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    label span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.35;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      outline: 0;
+      background: #ffffff;
+      color: var(--ink);
+    }
+
+    input {
+      min-height: 42px;
+      padding: 0 12px;
+      font-size: 14px;
+    }
+
+    textarea {
+      min-height: 118px;
+      resize: vertical;
+      padding: 12px;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    input:focus,
+    textarea:focus {
+      border-color: var(--ink);
+      box-shadow: 0 0 0 3px rgba(47, 109, 79, 0.14);
+    }
+
+    .examples-field {
+      display: grid;
+      gap: 10px;
+    }
+
+    .examples-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .examples-title {
+      display: grid;
+      gap: 7px;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .examples-title span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.35;
+    }
+
+    .add-example,
+    .remove-example {
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      color: var(--ink);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .add-example {
+      flex: 0 0 auto;
+      padding: 0 12px;
+    }
+
+    .add-example .plus {
+      width: 18px;
+      height: 18px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--ink);
+      border-radius: 999px;
+      line-height: 1;
+    }
+
+    .example-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .example-card {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfbf8;
+    }
+
+    .example-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .example-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .example-card textarea {
+      min-height: 92px;
+    }
+
+    .remove-example {
+      min-height: 30px;
+      padding: 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .remove-example:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    .add-example:hover,
+    .add-example:focus-visible,
+    .remove-example:hover:not(:disabled),
+    .remove-example:focus-visible:not(:disabled) {
+      border-color: var(--ink);
+      outline: 0;
+    }
+
+    .preview pre {
+      max-height: 720px;
+      overflow: auto;
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          #ffffff 0,
+          #ffffff 30px,
+          var(--soft-line) 31px
+        );
+    }
+
+    .checklist {
+      display: grid;
+      gap: 9px;
+      margin-top: 18px;
+    }
+
+    .check-item {
+      display: grid;
+      grid-template-columns: 22px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfbf8;
+      color: #333331;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .check-item input {
+      width: 18px;
+      height: 18px;
+      min-height: 0;
+      margin-top: 1px;
+      accent-color: var(--accent);
+    }
+
+    .toast {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      max-width: 320px;
+      padding: 13px 15px;
+      border-radius: 8px;
+      background: var(--ink);
+      color: #ffffff;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      pointer-events: none;
+      font-size: 13px;
+      z-index: 20;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 1040px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: relative;
+        height: auto;
+      }
+
+      .nav,
+      .block-grid,
+      .editor-grid,
+      .example-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .side-note {
+        margin-top: 0;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .examples-head {
+        flex-direction: column;
+      }
+
+      .actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .action {
+        flex: 1 1 140px;
+      }
+
+      .hero,
+      .section {
+        padding: 22px;
+      }
+    }
+
+    @media print {
+      body {
+        background: #ffffff;
+      }
+
+      .shell {
+        display: block;
+      }
+
+      .sidebar,
+      .topbar,
+      .toast {
+        display: none !important;
+      }
+
+      .content {
+        padding: 0;
+      }
+
+      .page {
+        max-width: none;
+      }
+
+      .hero,
+      .section,
+      .editor,
+      .preview {
+        box-shadow: none;
+        break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">PI</div>
+        <div class="brand-title">
+          <strong>Criar o prompt inicial</strong>
+          <span>Material do aluno</span>
+        </div>
+      </div>
+
+      <nav class="nav" aria-label="Seções da tarefa">
+        <a href="#abertura"><strong>Abertura</strong><span>Por que uma frase não basta</span></a>
+        <a href="#blocos"><strong>Quatro blocos</strong><span>Identidade, instruções, exemplos e contexto</span></a>
+        <a href="#tarefa"><strong>Tarefa</strong><span>Criar o prompt inicial</span></a>
+        <a href="#revisao"><strong>Revisão</strong><span>Conferir antes de copiar</span></a>
+      </nav>
+
+      <p class="side-note">
+        O rascunho fica salvo neste navegador. Depois de preencher, copie ou baixe o Markdown.
+      </p>
+    </aside>
+
+    <main class="content">
+      <div class="topbar">
+        <div class="status" id="status"><span class="dot"></span><span>Salvo</span></div>
+        <div class="actions">
+          <button class="action primary" type="button" id="copyBtn">Copiar prompt</button>
+          <button class="action" type="button" id="downloadBtn">Baixar Markdown</button>
+          <button class="action" type="button" id="printBtn">Imprimir</button>
+          <button class="action" type="button" id="clearBtn">Limpar</button>
+        </div>
+      </div>
+
+      <div class="page">
+        <header class="hero" id="abertura">
+          <div class="lesson-label">Material do aluno</div>
+          <h1>Criar o prompt inicial</h1>
+          <p class="lead">
+            Nesta tarefa, o prompt cru vira estrutura. Você separa papel, regras, exemplos e contexto para entender onde mexer quando o agente responde mal.
+          </p>
+        </header>
+
+        <section class="section">
+          <div class="section-kicker">Ponto de partida</div>
+          <h2>O prompt cru dá intenção, mas deixa o agente decidir demais sozinho.</h2>
+          <div class="prompt-panel">
+            <div class="panel-title">Prompt cru</div>
+            <pre>Você é um agente de imobiliária.
+Atenda os leads, seja educado e tente marcar uma visita.</pre>
+          </div>
+        </section>
+
+        <section class="section" id="blocos">
+          <div class="section-kicker">Os quatro blocos</div>
+          <h2>Um prompt profissional separa identidade, instruções, exemplos e contexto.</h2>
+          <p class="section-copy">
+            Quando tudo fica no mesmo parágrafo, qualquer ajuste vira chute. Separando os blocos, você sabe se o problema está no papel do agente, na regra, no exemplo ou na informação da empresa.
+          </p>
+
+          <div class="block-grid">
+            <article class="block">
+              <div class="number">1</div>
+              <h3>Identidade</h3>
+              <p>Define quem fala, por qual empresa fala e qual papel assume no atendimento.</p>
+            </article>
+            <article class="block">
+              <div class="number">2</div>
+              <h3>Instruções</h3>
+              <p>Transformam intenção em passo. O agente sabe o que perguntar, quando avançar e o que não prometer.</p>
+            </article>
+            <article class="block">
+              <div class="number">3</div>
+              <h3>Exemplos</h3>
+              <p>Mostram como a resposta deve soar quando o lead pede algo concreto.</p>
+            </article>
+            <article class="block">
+              <div class="number">4</div>
+              <h3>Contexto</h3>
+              <p>Guarda a verdade do negócio e marca o que depende da equipe humana.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section" id="tarefa">
+          <div class="section-kicker">Tarefa</div>
+          <h2>Monte a primeira versão do prompt com os blocos abaixo.</h2>
+          <p class="section-copy">
+            Preencha cada bloco com o caso da imobiliária. A ideia não é fazer o prompt final agora. É criar um rascunho organizado para testar depois.
+          </p>
+
+          <div class="task">
+            <strong>O que sai daqui</strong>
+            <p>Ao copiar ou baixar, o arquivo já sai como prompt-inicial.md, com identidade, instruções, exemplos e contexto.</p>
+          </div>
+
+          <div class="editor-grid">
+            <div class="editor">
+              <label>
+                Nome do agente
+                <input data-field="agentName" type="text" placeholder="Nome do agente" />
+              </label>
+
+              <label>
+                Nome da empresa
+                <input data-field="businessName" type="text" placeholder="Nome da empresa" />
+              </label>
+
+              <label>
+                Identidade
+                <span>Explique quem fala, por qual empresa e com que postura.</span>
+                <textarea data-field="identidade" placeholder="Escreva aqui a identidade do agente."></textarea>
+              </label>
+
+              <label>
+                Instruções
+                <span>Diga o que coletar antes de encaminhar e quais promessas evitar.</span>
+                <textarea data-field="instrucoes" placeholder="Escreva aqui as instruções do agente."></textarea>
+              </label>
+
+              <div class="examples-field">
+                <div class="examples-head">
+                  <div class="examples-title">
+                    Exemplos
+                    <span>Coloque o pedido do lead em cima e a resposta do agente abaixo.</span>
+                  </div>
+                  <button class="add-example" type="button" id="addExampleBtn">
+                    <span class="plus">+</span>
+                    Adicionar exemplo
+                  </button>
+                </div>
+                <div class="example-list" id="exampleList"></div>
+              </div>
+
+              <label>
+                Contexto
+                <span>Registre o que a empresa sabe e o que só uma pessoa pode confirmar.</span>
+                <textarea data-field="contexto" placeholder="Escreva aqui o contexto da empresa."></textarea>
+              </label>
+            </div>
+
+            <div class="preview">
+              <div class="panel-title">Prompt inicial pronto para copiar</div>
+              <pre id="preview"></pre>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="revisao">
+          <div class="section-kicker">Revisão final</div>
+          <h2>Antes de copiar, veja se cada bloco resolve um pedaço do comportamento.</h2>
+          <div class="checklist">
+            <label class="check-item"><input type="checkbox" data-check="identidade" />A identidade deixa claro quem está falando.</label>
+            <label class="check-item"><input type="checkbox" data-check="instrucoes" />As instruções dizem o que pedir e o que não prometer.</label>
+            <label class="check-item"><input type="checkbox" data-check="exemplos" />Os exemplos mostram como responder quando o lead pede algo concreto.</label>
+            <label class="check-item"><input type="checkbox" data-check="contexto" />O contexto impede o agente de inventar informação da empresa.</label>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const STORAGE_KEY = 'material.prompt.inicial.v1';
+    const fields = Array.from(document.querySelectorAll('[data-field]'));
+    const checks = Array.from(document.querySelectorAll('[data-check]'));
+    const exampleList = document.getElementById('exampleList');
+    const addExampleBtn = document.getElementById('addExampleBtn');
+    const preview = document.getElementById('preview');
+    const status = document.getElementById('status');
+    const toast = document.getElementById('toast');
+    let saveTimer = null;
+    const defaultExamples = [
+      {
+        lead: '',
+        reply: ''
+      }
+    ];
+
+    function valueFor(name) {
+      const field = document.querySelector(`[data-field="${name}"]`);
+      return field ? field.value.trim() : '';
+    }
+
+    function exampleValues() {
+      return Array.from(exampleList.querySelectorAll('.example-card'))
+        .map((card) => ({
+          lead: card.querySelector('[data-example="lead"]').value.trim(),
+          reply: card.querySelector('[data-example="reply"]').value.trim()
+        }))
+        .filter((example) => example.lead || example.reply);
+    }
+
+    function formatExamples() {
+      const agentName = valueFor('agentName') || 'Assistente';
+      const examples = exampleValues();
+
+      if (examples.length === 0) {
+        return '';
+      }
+
+      return examples
+        .map((example, index) => {
+          const lead = example.lead || '';
+          const reply = example.reply || '';
+          return `Exemplo ${index + 1}
+Lead: ${lead}
+${agentName}: ${reply}`;
+        })
+        .join('\n\n');
+    }
+
+    function buildMarkdown() {
+      return `# Criar o prompt inicial
+
+Agente: ${valueFor('agentName')}
+Empresa: ${valueFor('businessName')}
+
+<identidade>
+${valueFor('identidade')}
+</identidade>
+
+<instrucoes>
+${valueFor('instrucoes')}
+</instrucoes>
+
+<exemplos>
+${formatExamples()}
+</exemplos>
+
+<contexto>
+${valueFor('contexto')}
+</contexto>`;
+    }
+
+    function updatePreview() {
+      updateExampleReplyLabels();
+      preview.textContent = buildMarkdown();
+    }
+
+    function readState() {
+      const values = {};
+      fields.forEach((field) => {
+        values[field.dataset.field] = field.value;
+      });
+
+      const checklist = {};
+      checks.forEach((check) => {
+        checklist[check.dataset.check] = check.checked;
+      });
+
+      return { values, examples: exampleValues(), checklist };
+    }
+
+    function updateExampleNumbers() {
+      const cards = Array.from(exampleList.querySelectorAll('.example-card'));
+      cards.forEach((card, index) => {
+        card.querySelector('.example-index').textContent = `Exemplo ${index + 1}`;
+        card.querySelector('.remove-example').disabled = cards.length === 1;
+      });
+    }
+
+    function updateExampleReplyLabels() {
+      const agentName = valueFor('agentName') || 'Assistente';
+      exampleList.querySelectorAll('[data-example="reply"]').forEach((textarea) => {
+        const label = textarea.parentElement;
+        if (label && label.firstChild) {
+          label.firstChild.nodeValue = agentName;
+        }
+      });
+    }
+
+    function renderExample(example = {}) {
+      const card = document.createElement('div');
+      card.className = 'example-card';
+
+      const header = document.createElement('div');
+      header.className = 'example-card-header';
+
+      const index = document.createElement('span');
+      index.className = 'example-index';
+
+      const remove = document.createElement('button');
+      remove.className = 'remove-example';
+      remove.type = 'button';
+      remove.textContent = 'Remover';
+
+      header.append(index, remove);
+
+      const grid = document.createElement('div');
+      grid.className = 'example-grid';
+
+      const leadLabel = document.createElement('label');
+      leadLabel.textContent = 'Lead';
+      const lead = document.createElement('textarea');
+      lead.dataset.example = 'lead';
+      lead.placeholder = 'Mensagem do lead';
+      lead.value = example.lead || '';
+      leadLabel.append(lead);
+
+      const replyLabel = document.createElement('label');
+      replyLabel.textContent = valueFor('agentName') || 'Assistente';
+      const reply = document.createElement('textarea');
+      reply.dataset.example = 'reply';
+      reply.placeholder = 'Resposta do assistente';
+      reply.value = example.reply || '';
+      replyLabel.append(reply);
+
+      grid.append(leadLabel, replyLabel);
+      card.append(header, grid);
+      exampleList.append(card);
+
+      [lead, reply].forEach((textarea) => {
+        textarea.addEventListener('input', () => {
+          updatePreview();
+          scheduleSave();
+        });
+      });
+
+      remove.addEventListener('click', () => {
+        if (exampleList.querySelectorAll('.example-card').length === 1) return;
+        card.remove();
+        updateExampleNumbers();
+        updatePreview();
+        scheduleSave();
+      });
+
+      updateExampleNumbers();
+    }
+
+    function setExamples(examples) {
+      exampleList.innerHTML = '';
+      const activeExamples = Array.isArray(examples) && examples.length > 0 ? examples : defaultExamples;
+      activeExamples.forEach((example) => renderExample(example));
+    }
+
+    function examplesFromLegacy(text) {
+      if (!text || !text.trim()) return defaultExamples;
+
+      const leadMatch = text.match(/Lead:\s*([\s\S]*?)(?:\n[A-Za-zÀ-ÿ]+:|$)/);
+      const replyMatch = text.match(/\n[A-Za-zÀ-ÿ]+:\s*([\s\S]*)/);
+
+      return [
+        {
+          lead: leadMatch ? leadMatch[1].trim() : '',
+          reply: replyMatch ? replyMatch[1].trim() : text.trim()
+        }
+      ];
+    }
+
+    function applyState(state) {
+      if (!state || !state.values) return;
+
+      fields.forEach((field) => {
+        if (Object.prototype.hasOwnProperty.call(state.values, field.dataset.field)) {
+          field.value = state.values[field.dataset.field];
+        }
+      });
+
+      if (state.examples) {
+        setExamples(state.examples);
+      } else if (state.values.exemplos) {
+        setExamples(examplesFromLegacy(state.values.exemplos));
+      }
+
+      checks.forEach((check) => {
+        check.checked = Boolean(state.checklist && state.checklist[check.dataset.check]);
+      });
+    }
+
+    function setStatus(text, saving = false) {
+      status.innerHTML = `<span class="dot"></span><span>${text}</span>`;
+      status.querySelector('.dot').style.background = saving ? '#8a6700' : 'var(--accent)';
+    }
+
+    function saveNow() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(readState()));
+      setStatus('Salvo');
+    }
+
+    function scheduleSave() {
+      setStatus('Salvando...', true);
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveNow, 280);
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 1800);
+    }
+
+    async function copyPrompt() {
+      saveNow();
+      const text = buildMarkdown();
+
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const fallback = document.createElement('textarea');
+        fallback.value = text;
+        document.body.appendChild(fallback);
+        fallback.select();
+        document.execCommand('copy');
+        fallback.remove();
+      }
+
+      showToast('Prompt copiado.');
+    }
+
+    function downloadMarkdown() {
+      saveNow();
+      const blob = new Blob([buildMarkdown() + '\n'], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'prompt-inicial.md';
+      link.click();
+      URL.revokeObjectURL(url);
+      showToast('Markdown gerado.');
+    }
+
+    function clearAll() {
+      if (!confirm('Limpar todos os campos desta página?')) return;
+      localStorage.removeItem(STORAGE_KEY);
+      window.location.reload();
+    }
+
+    fields.forEach((field) => {
+      field.addEventListener('input', () => {
+        updatePreview();
+        scheduleSave();
+      });
+    });
+
+    checks.forEach((check) => {
+      check.addEventListener('change', scheduleSave);
+    });
+
+    document.getElementById('copyBtn').addEventListener('click', copyPrompt);
+    document.getElementById('downloadBtn').addEventListener('click', downloadMarkdown);
+    document.getElementById('printBtn').addEventListener('click', () => {
+      saveNow();
+      window.print();
+    });
+    document.getElementById('clearBtn').addEventListener('click', clearAll);
+    addExampleBtn.addEventListener('click', () => {
+      renderExample({ lead: '', reply: '' });
+      updatePreview();
+      scheduleSave();
+      exampleList.lastElementChild.querySelector('textarea').focus();
+    });
+
+    setExamples(defaultExamples);
+
+    try {
+      applyState(JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'));
+    } catch {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+
+    updatePreview();
+  </script>
+</body>
+</html>
