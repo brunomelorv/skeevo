@@ -38,6 +38,10 @@ async def get_agent_settings(db: AsyncSession = Depends(get_db)):
         contexto=settings.contexto,
         exemplos=settings.exemplos or [],
         max_history_messages=settings.max_history_messages,
+        simulate_typing=settings.simulate_typing if settings.simulate_typing is not None else True,
+        split_long_messages=settings.split_long_messages if settings.split_long_messages is not None else True,
+        min_typing_delay=settings.min_typing_delay if settings.min_typing_delay is not None else 3,
+        max_typing_delay=settings.max_typing_delay if settings.max_typing_delay is not None else 8,
         has_api_key=has_key,
         openai_api_key_masked=masked,
         updated_at=settings.updated_at,
@@ -59,6 +63,10 @@ async def update_agent_settings(
     settings.contexto = data.contexto
     settings.exemplos = [ex.model_dump() for ex in data.exemplos]
     settings.max_history_messages = data.max_history_messages
+    settings.simulate_typing = data.simulate_typing
+    settings.split_long_messages = data.split_long_messages
+    settings.min_typing_delay = data.min_typing_delay
+    settings.max_typing_delay = data.max_typing_delay
 
     if data.openai_api_key is not None:
         key = data.openai_api_key.strip()

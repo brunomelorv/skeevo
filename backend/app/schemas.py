@@ -27,6 +27,10 @@ class AgentSettingsBase(BaseModel):
     contexto: str = ""
     exemplos: List[ExamplePair] = []
     max_history_messages: int = 15
+    simulate_typing: bool = True
+    split_long_messages: bool = True
+    min_typing_delay: int = 3
+    max_typing_delay: int = 8
 
 
 class AgentSettingsRead(AgentSettingsBase):

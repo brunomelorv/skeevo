@@ -45,6 +45,10 @@ class AgentSettings(Base):
     contexto = Column(Text, default="")
     exemplos = Column(JSON, default=list)
     max_history_messages = Column(Integer, default=15)
+    simulate_typing = Column(Boolean, default=True)
+    split_long_messages = Column(Boolean, default=True)
+    min_typing_delay = Column(Integer, default=3)
+    max_typing_delay = Column(Integer, default=8)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
 
 
