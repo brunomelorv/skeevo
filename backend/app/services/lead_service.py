@@ -27,7 +27,9 @@ async def upsert_lead(
 
     dt = datetime.fromtimestamp(timestamp, tz=timezone.utc) if timestamp else datetime.now(timezone.utc)
 
+    is_new_lead = False
     if lead is None:
+        is_new_lead = True
         lead = Lead(
             phone=phone,
             push_name=push_name,
@@ -53,5 +55,6 @@ async def upsert_lead(
     db.add(msg)
     await db.commit()
 
+    lead._is_new_lead = is_new_lead
     return lead, True
 

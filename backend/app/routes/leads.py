@@ -1,10 +1,16 @@
+import inspect
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models import Lead, Message
+from app.models import Lead, Message, LeadFollowup
 from app.schemas import LeadResponse, MessageResponse, LeadStatusUpdate
+from app.routes.followup import (
+    get_or_create_config,
+    cancel_lead_followups,
+    schedule_lead_followups,
+)
 
 router = APIRouter()
 
@@ -59,8 +65,32 @@ async def update_lead_status(
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
 
-    lead.status = payload.status
+    new_status = payload.status
+    lead.status = new_status
     lead.updated_at = func.now()
+
+    config = await get_or_create_config(db)
+    target_statuses = config.target_statuses or []
+
+    if new_status not in target_statuses:
+        await cancel_lead_followups(db, lead.id, reason=f"status_changed_to_{new_status}")
+    else:
+        active_res = await db.execute(
+            select(LeadFollowup).where(
+                LeadFollowup.lead_id == lead.id,
+                LeadFollowup.status == "scheduled"
+            )
+        )
+        scalars = active_res.scalars()
+        if inspect.iscoroutine(scalars):
+            scalars = await scalars
+        active_items = scalars.all()
+        if inspect.iscoroutine(active_items):
+            active_items = await active_items
+        has_active = len(active_items) > 0 if isinstance(active_items, (list, tuple)) else False
+        if not has_active:
+            await schedule_lead_followups(db, lead)
+
     await db.commit()
     await db.refresh(lead)
     return lead

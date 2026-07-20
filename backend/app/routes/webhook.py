@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.routes.followup import cancel_lead_followups, schedule_lead_followups
 from app.services.agent_service import process_incoming_lead_message
 from app.services.lead_service import upsert_lead
 
@@ -52,6 +53,11 @@ async def webhook_waha(request: Request, db: AsyncSession = Depends(get_db)):
 
     if not is_new:
         return {"status": "duplicate_ignored"}
+
+    await cancel_lead_followups(db, lead.id, reason="lead_replied")
+
+    if getattr(lead, "_is_new_lead", False):
+        await schedule_lead_followups(db, lead)
 
     await process_incoming_lead_message(db=db, lead_id=lead.id, chat_id=msg.get("from", ""))
 

@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import engine, Base
-from app.routes import webhook, leads, waha, agent
+from app.routes import webhook, leads, waha, agent, followup
 
 
 @asynccontextmanager
@@ -27,6 +27,7 @@ app.include_router(webhook.router, tags=["Webhook"])
 app.include_router(leads.router, tags=["Leads"])
 app.include_router(waha.router, tags=["WAHA Session"])
 app.include_router(agent.router)
+app.include_router(followup.router)
 
 
 @app.get("/")

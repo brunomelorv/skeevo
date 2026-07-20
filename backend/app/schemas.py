@@ -117,6 +117,9 @@ class LeadFollowupRead(BaseModel):
     sent_at: Optional[datetime] = None
     cancel_reason: Optional[str] = None
     created_at: Optional[datetime] = None
+    lead_name: Optional[str] = None
+    lead_phone: Optional[str] = None
+    lead_status: Optional[str] = None
 
     class Config:
         from_attributes = True
