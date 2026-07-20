@@ -12,6 +12,11 @@ from app.services.followup_scheduler import run_followup_worker_loop
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        from sqlalchemy import text
+        await conn.execute(text("ALTER TABLE agent_settings ADD COLUMN IF NOT EXISTS simulate_typing BOOLEAN DEFAULT TRUE;"))
+        await conn.execute(text("ALTER TABLE agent_settings ADD COLUMN IF NOT EXISTS split_long_messages BOOLEAN DEFAULT TRUE;"))
+        await conn.execute(text("ALTER TABLE agent_settings ADD COLUMN IF NOT EXISTS min_typing_delay INTEGER DEFAULT 3;"))
+        await conn.execute(text("ALTER TABLE agent_settings ADD COLUMN IF NOT EXISTS max_typing_delay INTEGER DEFAULT 8;"))
     worker_task = asyncio.create_task(run_followup_worker_loop())
     try:
         yield
