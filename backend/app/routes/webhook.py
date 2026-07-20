@@ -23,19 +23,38 @@ async def webhook_waha(request: Request, db: AsyncSession = Depends(get_db)):
     if not phone:
         return {"status": "ignored"}
 
-    push_name = msg.get("_data", {}).get("notifyName") or payload.get("me", {}).get("pushName")
+    push_name = (
+        msg.get("_data", {}).get("notifyName")
+        or msg.get("pushName")
+        or msg.get("_data", {}).get("pushName")
+    )
 
-    lead = await upsert_lead(
+    body = (msg.get("body") or "").strip()
+    msg_type = msg.get("type") or msg.get("_data", {}).get("type") or "chat"
+    has_media = msg.get("hasMedia", False)
+
+    ignored_types = {"e2e_notification", "notification_template", "protocol", "ciphertext", "gp2", "revoked"}
+    if msg_type in ignored_types:
+        return {"status": "ignored"}
+
+    if not body and not has_media:
+        return {"status": "ignored"}
+
+    lead, is_new = await upsert_lead(
         db=db,
         phone=phone,
-        body=msg.get("body", ""),
+        body=body,
         message_id=msg.get("id", ""),
         chat_id=msg.get("from", ""),
         timestamp=msg.get("timestamp", 0),
         push_name=push_name
     )
 
+    if not is_new:
+        return {"status": "duplicate_ignored"}
+
     await process_incoming_lead_message(db=db, lead_id=lead.id, chat_id=msg.get("from", ""))
 
     return {"status": "ok"}
+
 
