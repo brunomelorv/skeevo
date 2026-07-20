@@ -1,16 +1,26 @@
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import engine, Base
 from app.routes import webhook, leads, waha, agent, followup
+from app.services.followup_scheduler import run_followup_worker_loop
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    yield
+    worker_task = asyncio.create_task(run_followup_worker_loop())
+    try:
+        yield
+    finally:
+        worker_task.cancel()
+        try:
+            await worker_task
+        except asyncio.CancelledError:
+            pass
 
 
 app = FastAPI(title="Skeevo API", version="1.0.0", lifespan=lifespan)
