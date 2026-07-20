@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models import Lead, Message
-from app.schemas import LeadResponse, MessageResponse
+from app.schemas import LeadResponse, MessageResponse, LeadStatusUpdate
 
 router = APIRouter()
 
@@ -12,11 +12,11 @@ router = APIRouter()
 @router.get("/leads", response_model=list[LeadResponse])
 async def list_leads(
     skip: int = 0,
-    limit: int = 50,
+    limit: int = 100,
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
-        select(Lead).order_by(Lead.created_at.desc()).offset(skip).limit(limit)
+        select(Lead).order_by(Lead.updated_at.desc()).offset(skip).limit(limit)
     )
     return result.scalars().all()
 
@@ -45,6 +45,24 @@ async def get_lead(lead_id: int, db: AsyncSession = Depends(get_db)):
     lead = result.scalar_one_or_none()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
+    return lead
+
+
+@router.patch("/leads/{lead_id}/status", response_model=LeadResponse)
+async def update_lead_status(
+    lead_id: int,
+    payload: LeadStatusUpdate,
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(Lead).where(Lead.id == lead_id))
+    lead = result.scalar_one_or_none()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    lead.status = payload.status
+    lead.updated_at = func.now()
+    await db.commit()
+    await db.refresh(lead)
     return lead
 
 

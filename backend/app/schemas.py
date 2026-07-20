@@ -3,6 +3,10 @@ from typing import Optional
 from datetime import datetime
 
 
+class LeadStatusUpdate(BaseModel):
+    status: str
+
+
 class LeadResponse(BaseModel):
     id: int
     phone: str
