@@ -8,6 +8,7 @@ import {
   MessageSquare,
   Settings,
   Bot,
+  CalendarClock,
 } from "lucide-react";
 import {
   Sidebar,
@@ -26,6 +27,7 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/leads", label: "Leads", icon: Users },
   { href: "/agent", label: "Agente de IA", icon: Bot },
+  { href: "/follow-up", label: "Follow Up", icon: CalendarClock },
 ];
 
 export default function AppSidebar() {
