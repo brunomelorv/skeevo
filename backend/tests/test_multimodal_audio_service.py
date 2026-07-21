@@ -50,4 +50,6 @@ async def test_download_waha_media():
         content = await download_waha_media(fake_url)
 
         assert content == fake_content
-        mock_get.assert_called_once_with(fake_url)
+        from app.config import settings
+        expected_url = fake_url.replace("http://localhost:3000", settings.WAHA_API_URL.rstrip("/"))
+        mock_get.assert_called_once_with(expected_url, headers={"X-Api-Key": settings.WAHA_API_KEY} if settings.WAHA_API_KEY else {})
