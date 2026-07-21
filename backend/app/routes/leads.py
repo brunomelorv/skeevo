@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models import Lead, Message, LeadFollowup
-from app.schemas import LeadResponse, MessageResponse, LeadStatusUpdate
+from app.schemas import LeadResponse, MessageResponse, LeadStatusUpdate, SendMessageRequest
 from app.routes.followup import (
     get_or_create_config,
     cancel_lead_followups,
@@ -65,9 +65,29 @@ async def update_lead_status(
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
 
+    old_status = lead.status
     new_status = payload.status
     lead.status = new_status
     lead.updated_at = func.now()
+
+    # Grava log de auditoria de movimentação do lead
+    from app.models import AuditLogModel
+    lead_identifier = lead.push_name or lead.name or lead.phone
+    audit_entry = AuditLogModel(
+        category="lead_movement",
+        action="status_changed",
+        entity_type="lead",
+        entity_id=str(lead.id),
+        title=f"Lead '{lead_identifier}' movido: '{old_status}' → '{new_status}'",
+        details={
+            "lead_id": lead.id,
+            "lead_phone": lead.phone,
+            "lead_name": lead_identifier,
+            "previous_status": old_status,
+            "new_status": new_status,
+        },
+    )
+    db.add(audit_entry)
 
     config = await get_or_create_config(db)
     target_statuses = config.target_statuses or []
@@ -102,3 +122,68 @@ async def list_lead_messages(lead_id: int, db: AsyncSession = Depends(get_db)):
         select(Message).where(Message.lead_id == lead_id).order_by(Message.created_at.asc())
     )
     return result.scalars().all()
+
+
+@router.post("/leads/{lead_id}/refresh-avatar", response_model=LeadResponse)
+async def refresh_lead_avatar(lead_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Lead).where(Lead.id == lead_id))
+    lead = result.scalar_one_or_none()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    from app.services.lead_service import fetch_waha_profile_picture
+    pic_url = await fetch_waha_profile_picture(lead.phone)
+    if pic_url:
+        lead.profile_picture_url = pic_url
+        lead.updated_at = func.now()
+        await db.commit()
+        await db.refresh(lead)
+    return lead
+
+
+@router.post("/leads/{lead_id}/messages", response_model=MessageResponse)
+async def send_lead_message(
+    lead_id: int,
+    payload: SendMessageRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(Lead).where(Lead.id == lead_id))
+    lead = result.scalar_one_or_none()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    text = payload.message.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Message cannot be empty")
+
+    chat_id = f"{lead.phone}@c.us" if "@" not in lead.phone else lead.phone
+
+    from app.services.agent_service import send_waha_message
+    waha_res = await send_waha_message(chat_id, text)
+
+    msg_id = None
+    if waha_res and waha_res.status_code in (200, 201):
+        try:
+            data = waha_res.json()
+            raw_id = data.get("id") or data.get("key", {}).get("id")
+            # O WAHA pode retornar "id" como dict: {"fromMe": True, "remote": "...", "id": "3EB0..."}
+            # Nesse caso, extraímos o campo "id" interno que contém a string real.
+            if isinstance(raw_id, dict):
+                msg_id = raw_id.get("id") or raw_id.get("_serialized")
+            else:
+                msg_id = str(raw_id) if raw_id is not None else None
+        except Exception:
+            pass
+
+    msg = Message(
+        lead_id=lead.id,
+        message_id=msg_id,
+        body=text,
+        from_me=True,
+        chat_id=chat_id
+    )
+    db.add(msg)
+    lead.updated_at = func.now()
+    await db.commit()
+    await db.refresh(msg)
+    return msg

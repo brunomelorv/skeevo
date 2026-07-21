@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import engine, Base
-from app.routes import webhook, leads, waha, agent, followup
+from app.routes import webhook, leads, waha, agent, followup, kanban, audit
 from app.services.followup_scheduler import run_followup_worker_loop
 
 
@@ -17,6 +17,7 @@ async def lifespan(app: FastAPI):
         await conn.execute(text("ALTER TABLE agent_settings ADD COLUMN IF NOT EXISTS split_long_messages BOOLEAN DEFAULT TRUE;"))
         await conn.execute(text("ALTER TABLE agent_settings ADD COLUMN IF NOT EXISTS min_typing_delay INTEGER DEFAULT 3;"))
         await conn.execute(text("ALTER TABLE agent_settings ADD COLUMN IF NOT EXISTS max_typing_delay INTEGER DEFAULT 8;"))
+        await conn.execute(text("ALTER TABLE leads ADD COLUMN IF NOT EXISTS profile_picture_url TEXT;"))
     worker_task = asyncio.create_task(run_followup_worker_loop())
     try:
         yield
@@ -43,6 +44,8 @@ app.include_router(leads.router, tags=["Leads"])
 app.include_router(waha.router, tags=["WAHA Session"])
 app.include_router(agent.router)
 app.include_router(followup.router)
+app.include_router(kanban.router)
+app.include_router(audit.router)
 
 
 @app.get("/")

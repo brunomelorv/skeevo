@@ -9,14 +9,20 @@ import {
   XCircle,
   Phone,
   Clock,
+  Tag,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import type { KanbanColumn } from "@/hooks/useKanbanColumns";
+
+export type { KanbanColumn };
 
 export interface Lead {
   id: number;
   phone: string;
   name?: string;
   push_name?: string;
+  profile_picture_url?: string;
   first_message?: string;
   status: string;
   created_at: string;
@@ -25,49 +31,21 @@ export interface Lead {
 
 interface KanbanBoardProps {
   leads: Lead[];
+  columns: KanbanColumn[];
   onOpenLead: (lead: Lead) => void;
   onStatusChange: (leadId: number, newStatus: string) => void;
 }
 
-const COLUMNS = [
-  {
-    id: "novo",
-    label: "Novo",
-    icon: Inbox,
-    color: "bg-chart-1",
-    badgeClass: "bg-chart-1/10 text-chart-1 border-chart-1/20",
-  },
-  {
-    id: "em_atendimento",
-    label: "Em Atendimento",
-    icon: MessageSquare,
-    color: "bg-chart-2",
-    badgeClass: "bg-chart-2/10 text-chart-2 border-chart-2/20",
-  },
-  {
-    id: "qualificado",
-    label: "Qualificado",
-    icon: Star,
-    color: "bg-chart-3",
-    badgeClass: "bg-chart-3/10 text-chart-3 border-chart-3/20",
-  },
-  {
-    id: "ganho",
-    label: "Ganho",
-    icon: Trophy,
-    color: "bg-chart-4",
-    badgeClass: "bg-chart-4/10 text-chart-4 border-chart-4/20",
-  },
-  {
-    id: "perdido",
-    label: "Perdido",
-    icon: XCircle,
-    color: "bg-chart-5",
-    badgeClass: "bg-chart-5/10 text-chart-5 border-chart-5/20",
-  },
-];
+/** Mapa de ícones para as colunas padrão por id */
+const COLUMN_ICONS: Record<string, React.ElementType> = {
+  novo: Inbox,
+  em_atendimento: MessageSquare,
+  qualificado: Star,
+  ganho: Trophy,
+  perdido: XCircle,
+};
 
-export default function KanbanBoard({ leads, onOpenLead, onStatusChange }: KanbanBoardProps) {
+export default function KanbanBoard({ leads, columns, onOpenLead, onStatusChange }: KanbanBoardProps) {
   const [draggedLeadId, setDraggedLeadId] = useState<number | null>(null);
 
   const handleDragStart = (e: React.DragEvent, leadId: number) => {
@@ -90,10 +68,15 @@ export default function KanbanBoard({ leads, onOpenLead, onStatusChange }: Kanba
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start">
-      {COLUMNS.map((col) => {
+    <div
+      className="grid gap-4 items-start"
+      style={{
+        gridTemplateColumns: `repeat(${Math.min(columns.length, 10)}, minmax(0, 1fr))`,
+      }}
+    >
+      {columns.map((col) => {
         const colLeads = leads.filter((l) => l.status === col.id);
-        const Icon = col.icon;
+        const Icon = COLUMN_ICONS[col.id] ?? Tag;
 
         return (
           <div
@@ -106,9 +89,9 @@ export default function KanbanBoard({ leads, onOpenLead, onStatusChange }: Kanba
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Icon className="size-4 text-muted-foreground" />
-                  <span className="font-semibold text-sm">{col.label}</span>
+                  <span className="font-semibold text-sm truncate">{col.label}</span>
                 </div>
-                <Badge variant="outline" className={`text-xs font-medium px-1.5 py-0 ${col.badgeClass}`}>
+                <Badge variant="outline" className={`text-xs font-medium px-1.5 py-0 shrink-0 ${col.badgeClass}`}>
                   {colLeads.length}
                 </Badge>
               </div>
@@ -132,9 +115,19 @@ export default function KanbanBoard({ leads, onOpenLead, onStatusChange }: Kanba
                   >
                     <div className="flex items-start justify-between gap-2 mb-1.5">
                       <div className="flex items-center gap-2">
-                        <div className="flex size-7 items-center justify-center rounded-md bg-primary/10 text-primary text-xs font-bold">
-                          {(lead.push_name || lead.phone)[0].toUpperCase()}
-                        </div>
+                        <Avatar className="size-7 rounded-md overflow-hidden">
+                          {lead.profile_picture_url ? (
+                            <AvatarImage
+                              src={lead.profile_picture_url}
+                              alt={lead.push_name || lead.phone}
+                              referrerPolicy="no-referrer"
+                              className="object-cover size-full"
+                            />
+                          ) : null}
+                          <AvatarFallback className="rounded-md bg-primary/10 text-primary text-xs font-bold size-full flex items-center justify-center">
+                            {(lead.push_name || lead.phone)[0].toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
                         <div>
                           <p className="text-xs font-semibold">
                             {lead.push_name || "Lead sem nome"}

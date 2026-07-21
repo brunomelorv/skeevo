@@ -54,13 +54,7 @@ interface FollowupConfigFormProps {
   saveStatus: { type: "success" | "error" | null; message: string };
 }
 
-const KANBAN_STATUS_OPTIONS = [
-  { id: "novo", label: "Novo" },
-  { id: "em_atendimento", label: "Em Atendimento" },
-  { id: "qualificado", label: "Qualificado" },
-  { id: "ganho", label: "Ganho" },
-  { id: "perdido", label: "Perdido" },
-];
+import { useKanbanColumns } from "@/hooks/useKanbanColumns";
 
 export default function FollowupConfigForm({
   config,
@@ -68,6 +62,7 @@ export default function FollowupConfigForm({
   isSaving,
   saveStatus,
 }: FollowupConfigFormProps) {
+  const { columns } = useKanbanColumns();
   const [formData, setFormData] = useState<FollowupConfigData>(config);
 
   // Sync state if props change initially
@@ -232,7 +227,7 @@ export default function FollowupConfigForm({
               Selecione as colunas do Kanban que devem ativar o agendamento desta régua.
             </p>
             <div className="flex flex-wrap gap-4 pt-2">
-              {KANBAN_STATUS_OPTIONS.map((status) => {
+              {columns.map((status) => {
                 const checked = formData.target_statuses?.includes(status.id) ?? false;
                 return (
                   <label
@@ -247,6 +242,7 @@ export default function FollowupConfigForm({
                       checked={checked}
                       onCheckedChange={() => handleStatusToggle(status.id)}
                     />
+                    <span className={`inline-block size-2 rounded-full ${status.color}`} />
                     <span>{status.label}</span>
                   </label>
                 );

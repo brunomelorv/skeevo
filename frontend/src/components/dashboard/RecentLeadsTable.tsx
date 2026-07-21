@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -12,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
+import type { KanbanColumn } from "@/hooks/useKanbanColumns";
 
 interface Lead {
   id: number;
@@ -23,21 +25,25 @@ interface Lead {
   created_at: string;
 }
 
-const statusConfig: Record<string, { label: string; dot: string }> = {
-  novo: { label: "Novo", dot: "bg-chart-1" },
-  em_atendimento: { label: "Atendimento", dot: "bg-chart-2" },
-  qualificado: { label: "Qualificado", dot: "bg-chart-3" },
-  ganho: { label: "Ganho", dot: "bg-chart-4" },
-  perdido: { label: "Perdido", dot: "bg-chart-5" },
-};
+interface RecentLeadsTableProps {
+  leads: Lead[];
+  loading: boolean;
+  columns?: KanbanColumn[];
+}
 
 export default function RecentLeadsTable({
   leads,
   loading,
-}: {
-  leads: Lead[];
-  loading: boolean;
-}) {
+  columns = [],
+}: RecentLeadsTableProps) {
+  const statusConfig = useMemo(() => {
+    const config: Record<string, { label: string; dot: string }> = {};
+    columns.forEach((col) => {
+      config[col.id] = { label: col.label, dot: col.color };
+    });
+    return config;
+  }, [columns]);
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">

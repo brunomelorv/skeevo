@@ -9,6 +9,7 @@ import {
   Settings,
   Bot,
   CalendarClock,
+  ShieldCheck,
 } from "lucide-react";
 import {
   Sidebar,
@@ -25,7 +26,9 @@ import {
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/chats", label: "Chats", icon: MessageSquare },
   { href: "/leads", label: "Leads", icon: Users },
+  { href: "/auditoria", label: "Auditoria", icon: ShieldCheck },
   { href: "/agent", label: "Agente de IA", icon: Bot },
   { href: "/follow-up", label: "Follow Up", icon: CalendarClock },
 ];

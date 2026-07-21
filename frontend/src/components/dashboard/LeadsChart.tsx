@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChartContainer,
@@ -8,28 +9,38 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { Pie, PieChart } from "recharts";
+import type { KanbanColumn } from "@/hooks/useKanbanColumns";
 
 interface LeadsChartProps {
   leads: Array<{ status: string }>;
+  columns?: KanbanColumn[];
 }
 
-const statusLabels: Record<string, string> = {
-  novo: "Novo",
-  em_atendimento: "Em Atendimento",
-  qualificado: "Qualificado",
-  ganho: "Ganho",
-  perdido: "Perdido",
-};
+function parseCssVarColor(bgClass: string): string {
+  // bg-chart-1 -> var(--chart-1)
+  const match = bgClass.match(/bg-(chart-\d+)/);
+  if (match) {
+    return `var(--${match[1]})`;
+  }
+  return "var(--chart-1)";
+}
 
-const chartConfig = {
-  novo: { label: "Novo", color: "var(--chart-1)" },
-  em_atendimento: { label: "Em Atendimento", color: "var(--chart-2)" },
-  qualificado: { label: "Qualificado", color: "var(--chart-3)" },
-  ganho: { label: "Ganho", color: "var(--chart-4)" },
-  perdido: { label: "Perdido", color: "var(--chart-5)" },
-} satisfies ChartConfig;
+export default function LeadsChart({ leads, columns = [] }: LeadsChartProps) {
+  const { chartConfig, statusLabels } = useMemo(() => {
+    const labels: Record<string, string> = {};
+    const config: ChartConfig = {};
 
-export default function LeadsChart({ leads }: LeadsChartProps) {
+    columns.forEach((col) => {
+      labels[col.id] = col.label;
+      config[col.id] = {
+        label: col.label,
+        color: parseCssVarColor(col.color),
+      };
+    });
+
+    return { chartConfig: config, statusLabels: labels };
+  }, [columns]);
+
   const statusCounts = leads.reduce(
     (acc, lead) => {
       acc[lead.status] = (acc[lead.status] || 0) + 1;

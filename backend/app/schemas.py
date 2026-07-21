@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from typing import List, Optional
+from pydantic import BaseModel, Field
+from typing import List, Optional, Any, Dict
 from datetime import datetime
 
 
@@ -51,11 +51,16 @@ class LeadStatusUpdate(BaseModel):
     status: str
 
 
+class SendMessageRequest(BaseModel):
+    message: str
+
+
 class LeadResponse(BaseModel):
     id: int
     phone: str
     name: Optional[str] = None
     push_name: Optional[str] = None
+    profile_picture_url: Optional[str] = None
     first_message: Optional[str] = None
     first_message_at: Optional[datetime] = None
     last_message_at: Optional[datetime] = None
@@ -127,5 +132,50 @@ class LeadFollowupRead(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# --- Kanban & Audit Schemas ---
+
+class KanbanColumnBase(BaseModel):
+    slug: str
+    label: str
+    color: str = "bg-chart-1"
+    badge_class: str = ""
+    position: int = 0
+
+
+class KanbanColumnCreate(BaseModel):
+    label: str
+
+
+class KanbanColumnUpdate(BaseModel):
+    label: Optional[str] = None
+    color: Optional[str] = None
+    badge_class: Optional[str] = None
+    position: Optional[int] = None
+
+
+class KanbanColumnRead(KanbanColumnBase):
+    id: int
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class AuditLogRead(BaseModel):
+    id: int
+    category: str
+    action: str
+    entity_type: Optional[str] = None
+    entity_id: Optional[str] = None
+    title: str
+    details: Optional[Dict[str, Any]] = None
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
 
 

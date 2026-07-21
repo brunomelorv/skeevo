@@ -7,6 +7,7 @@ import DailyChart from "@/components/dashboard/DailyChart";
 import PipelineCard from "@/components/dashboard/PipelineCard";
 import RecentLeadsTable from "@/components/dashboard/RecentLeadsTable";
 import WahaConnectionWizard from "@/components/WahaConnectionWizard";
+import { useKanbanColumns } from "@/hooks/useKanbanColumns";
 
 interface Lead {
   id: number;
@@ -25,6 +26,8 @@ export default function Dashboard() {
   const [allLeads, setAllLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [waStatus, setWaStatus] = useState<string>("");
+
+  const { columns } = useKanbanColumns();
 
   const fetchStats = async () => {
     setLoading(true);
@@ -70,18 +73,19 @@ export default function Dashboard() {
         totalLeads={totalLeads}
         todayLeads={todayLeads}
         loading={loading}
-        waStatus={waStatus}
+        columns={columns}
+        allLeads={allLeads}
       />
 
       <WahaConnectionWizard onStatusChange={setWaStatus} />
 
       <div className="grid gap-4 xl:grid-cols-3">
-        <LeadsChart leads={allLeads} />
+        <LeadsChart leads={allLeads} columns={columns} />
         <DailyChart leads={allLeads} />
-        <PipelineCard leads={allLeads} />
+        <PipelineCard leads={allLeads} columns={columns} />
       </div>
 
-      <RecentLeadsTable leads={recentLeads} loading={loading} />
+      <RecentLeadsTable leads={recentLeads} loading={loading} columns={columns} />
     </div>
   );
 }

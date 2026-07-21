@@ -11,6 +11,7 @@ class Lead(Base):
     phone = Column(String(20), unique=True, nullable=False, index=True)
     name = Column(String(255), nullable=True)
     push_name = Column(String(255), nullable=True)
+    profile_picture_url = Column(Text, nullable=True)
     first_message = Column(Text, nullable=True)
     first_message_at = Column(DateTime(timezone=True), server_default=func.now())
     last_message_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -89,3 +90,27 @@ class LeadFollowup(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
+class KanbanColumnModel(Base):
+    __tablename__ = "kanban_columns"
+
+    id = Column(Integer, primary_key=True, index=True)
+    slug = Column(String(50), unique=True, nullable=False, index=True)
+    label = Column(String(255), nullable=False)
+    color = Column(String(50), nullable=False, default="bg-chart-1")
+    badge_class = Column(String(255), nullable=False, default="")
+    position = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class AuditLogModel(Base):
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    category = Column(String(50), nullable=False, index=True)  # "kanban", "lead_movement", "followup", "agent"
+    action = Column(String(50), nullable=False, index=True)    # "lead_status_changed", etc.
+    entity_type = Column(String(50), nullable=True)             # "lead", "column", "followup_config"
+    entity_id = Column(String(100), nullable=True)
+    title = Column(String(255), nullable=False)
+    details = Column(JSON, nullable=True)                       # Diffs e metadados da alteração
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)

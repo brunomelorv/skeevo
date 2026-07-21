@@ -55,12 +55,15 @@ interface FollowupQueueTableProps {
   onCancelItem: (id: number) => Promise<void>;
 }
 
+import { useKanbanColumns } from "@/hooks/useKanbanColumns";
+
 export default function FollowupQueueTable({
   items,
   isLoading,
   onRefresh,
   onCancelItem,
 }: FollowupQueueTableProps) {
+  const { columns } = useKanbanColumns();
   const [cancellingId, setCancellingId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -125,18 +128,18 @@ export default function FollowupQueueTable({
   const renderKanbanBadge = (kanbanStatus?: string) => {
     if (!kanbanStatus) return <span className="text-muted-foreground text-xs">-</span>;
 
-    const labelMap: Record<string, { label: string; style: string }> = {
-      novo: { label: "Novo", style: "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/50 dark:text-sky-300 dark:border-sky-800" },
-      em_atendimento: { label: "Em Atendimento", style: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800" },
-      qualificado: { label: "Qualificado", style: "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-800" },
-      ganho: { label: "Ganho", style: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800" },
-      perdido: { label: "Perdido", style: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800" },
-    };
+    const matched = columns.find((c) => c.id === kanbanStatus);
+    if (matched) {
+      return (
+        <Badge variant="outline" className={`font-normal text-xs ${matched.badgeClass}`}>
+          {matched.label}
+        </Badge>
+      );
+    }
 
-    const config = labelMap[kanbanStatus] || { label: kanbanStatus, style: "" };
     return (
-      <Badge variant="outline" className={`font-normal text-xs ${config.style}`}>
-        {config.label}
+      <Badge variant="outline" className="font-normal text-xs">
+        {kanbanStatus}
       </Badge>
     );
   };
