@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import engine, Base
-from app.routes import webhook, leads, waha, agent, followup, kanban, audit
+from app.routes import webhook, leads, waha, agent, followup, kanban, audit, calendar
 from app.services.followup_scheduler import run_followup_worker_loop
 
 
@@ -47,6 +47,7 @@ app.include_router(agent.router)
 app.include_router(followup.router)
 app.include_router(kanban.router)
 app.include_router(audit.router)
+app.include_router(calendar.router)
 
 
 @app.get("/")
