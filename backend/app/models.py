@@ -114,3 +114,44 @@ class AuditLogModel(Base):
     title = Column(String(255), nullable=False)
     details = Column(JSON, nullable=True)                       # Diffs e metadados da alteração
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class ScheduleModel(Base):
+    __tablename__ = "schedules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), default="Agenda Principal")
+    is_active = Column(Boolean, default=True)
+    slot_duration_minutes = Column(Integer, default=30)
+    timezone = Column(String(50), default="America/Sao_Paulo")
+    min_notice_hours = Column(Integer, default=24)
+    weekly_availability = Column(JSON, default=dict)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class GoogleOAuthTokenModel(Base):
+    __tablename__ = "google_oauth_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), nullable=False)
+    access_token = Column(Text, nullable=False)
+    refresh_token = Column(Text, nullable=True)
+    expires_at = Column(DateTime(timezone=True), nullable=True)
+    calendar_id = Column(String(255), default="primary")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class AppointmentModel(Base):
+    __tablename__ = "appointments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    lead_id = Column(Integer, ForeignKey("leads.id"), nullable=False, index=True)
+    start_time = Column(DateTime(timezone=True), nullable=False)
+    end_time = Column(DateTime(timezone=True), nullable=False)
+    status = Column(String(50), default="scheduled")
+    summary = Column(String(255), nullable=True)
+    notes = Column(Text, nullable=True)
+    google_event_id = Column(String(255), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

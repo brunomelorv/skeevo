@@ -11,6 +11,7 @@ from app.services.followup_scheduler import run_followup_worker_loop
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
+        import app.models
         await conn.run_sync(Base.metadata.create_all)
         from sqlalchemy import text
         await conn.execute(text("ALTER TABLE agent_settings ADD COLUMN IF NOT EXISTS simulate_typing BOOLEAN DEFAULT TRUE;"))

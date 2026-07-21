@@ -178,4 +178,40 @@ class AuditLogRead(BaseModel):
         from_attributes = True
 
 
+class ScheduleRead(BaseModel):
+    id: int
+    name: str
+    is_active: bool
+    slot_duration_minutes: int
+    timezone: str
+    min_notice_hours: int
+    weekly_availability: Dict[str, Any]
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
+    class Config:
+        from_attributes = True
+
+
+class AppointmentCreate(BaseModel):
+    lead_id: int
+    start_time: datetime
+    end_time: datetime
+    summary: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class AppointmentRead(BaseModel):
+    id: int
+    lead_id: int
+    start_time: datetime
+    end_time: datetime
+    status: str
+    summary: Optional[str] = None
+    notes: Optional[str] = None
+    google_event_id: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
