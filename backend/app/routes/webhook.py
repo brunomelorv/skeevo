@@ -32,17 +32,20 @@ async def webhook_waha(request: Request, db: AsyncSession = Depends(get_db)):
     if not phone:
         return {"status": "ignored"}
 
+    _data = msg.get("_data") or {}
+    media = msg.get("media") or {}
+
     push_name = (
-        msg.get("_data", {}).get("notifyName")
+        _data.get("notifyName")
         or msg.get("pushName")
-        or msg.get("_data", {}).get("pushName")
+        or _data.get("pushName")
     )
 
     body = (msg.get("body") or "").strip()
-    msg_type = msg.get("type") or msg.get("_data", {}).get("type") or "chat"
+    msg_type = msg.get("type") or _data.get("type") or "chat"
     has_media = msg.get("hasMedia", False)
-    media_url = msg.get("mediaUrl") or msg.get("_data", {}).get("mediaUrl") or msg.get("media", {}).get("url") or ""
-    mimetype = msg.get("mimetype") or msg.get("_data", {}).get("mimetype") or ""
+    media_url = msg.get("mediaUrl") or _data.get("mediaUrl") or media.get("url") or ""
+    mimetype = msg.get("mimetype") or _data.get("mimetype") or ""
 
     ignored_types = {"e2e_notification", "notification_template", "protocol", "ciphertext", "gp2", "revoked"}
     if msg_type in ignored_types:
@@ -51,23 +54,26 @@ async def webhook_waha(request: Request, db: AsyncSession = Depends(get_db)):
     image_b64 = None
 
     if has_media or media_url or mimetype:
-        if mimetype.startswith("audio/") or msg_type in ["audio", "ptt", "voice"]:
-            if media_url:
-                audio_bytes = await download_waha_media(media_url)
-                stmt = select(AgentSettings).where(AgentSettings.id == 1)
-                result = await db.execute(stmt)
-                agent_settings = result.scalar_one_or_none()
-                api_key = agent_settings.openai_api_key if agent_settings else None
-                if api_key:
-                    transcript = await transcribe_audio_bytes(audio_bytes, api_key)
-                    body = format_audio_transcript(transcript)
-        elif mimetype.startswith("image/") or msg_type == "image":
-            if media_url:
-                img_bytes = await download_waha_media(media_url)
-                b64_str = base64.b64encode(img_bytes).decode("utf-8")
-                image_b64 = f"data:{mimetype or 'image/jpeg'};base64,{b64_str}"
-            if not body:
-                body = "[📷 Imagem enviada]"
+        try:
+            if mimetype.startswith("audio/") or msg_type in ["audio", "ptt", "voice"]:
+                if media_url:
+                    audio_bytes = await download_waha_media(media_url)
+                    stmt = select(AgentSettings).where(AgentSettings.id == 1)
+                    result = await db.execute(stmt)
+                    agent_settings = result.scalar_one_or_none()
+                    api_key = agent_settings.openai_api_key if agent_settings else None
+                    if api_key:
+                        transcript = await transcribe_audio_bytes(audio_bytes, api_key)
+                        body = format_audio_transcript(transcript)
+            elif mimetype.startswith("image/") or msg_type == "image":
+                if media_url:
+                    img_bytes = await download_waha_media(media_url)
+                    b64_str = base64.b64encode(img_bytes).decode("utf-8")
+                    image_b64 = f"data:{mimetype or 'image/jpeg'};base64,{b64_str}"
+                if not body:
+                    body = "[📷 Imagem enviada]"
+        except Exception as e:
+            print(f"Error processing media in webhook: {e}")
 
     if not body and not has_media:
         return {"status": "ignored"}
