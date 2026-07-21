@@ -80,7 +80,32 @@ def calculate_typing_delay(chunk: str, min_delay: int = 3, max_delay: int = 8) -
     return delay
 
 
-async def process_incoming_lead_message(db: AsyncSession, lead_id: int, chat_id: str) -> bool:
+def build_openai_messages_payload(
+    system_prompt: str,
+    history_messages: list,
+    current_image_b64: str = None,
+) -> list:
+    ai_messages = [{"role": "system", "content": system_prompt}]
+    for idx, msg in enumerate(history_messages):
+        is_from_me = getattr(msg, "from_me", False) if not isinstance(msg, dict) else msg.get("from_me", False)
+        body = getattr(msg, "body", "") if not isinstance(msg, dict) else msg.get("body", "")
+        role = "assistant" if is_from_me else "user"
+
+        if idx == len(history_messages) - 1 and current_image_b64 and role == "user":
+            content = [
+                {"type": "text", "text": body or ""},
+                {"type": "image_url", "image_url": {"url": current_image_b64}},
+            ]
+        else:
+            content = body or ""
+
+        ai_messages.append({"role": role, "content": content})
+    return ai_messages
+
+
+async def process_incoming_lead_message(
+    db: AsyncSession, lead_id: int, chat_id: str, image_b64: str = None
+) -> bool:
     stmt = select(AgentSettings).where(AgentSettings.id == 1)
     result = await db.execute(stmt)
     agent_settings = result.scalar_one_or_none()
@@ -99,11 +124,11 @@ async def process_incoming_lead_message(db: AsyncSession, lead_id: int, chat_id:
     messages = list(reversed(msg_result.scalars().all()))
 
     system_prompt = build_system_prompt(agent_settings)
-
-    ai_messages = [{"role": "system", "content": system_prompt}]
-    for msg in messages:
-        role = "assistant" if msg.from_me else "user"
-        ai_messages.append({"role": role, "content": msg.body or ""})
+    ai_messages = build_openai_messages_payload(
+        system_prompt=system_prompt,
+        history_messages=messages,
+        current_image_b64=image_b64,
+    )
 
     client = AsyncOpenAI(api_key=agent_settings.openai_api_key)
     response = await client.chat.completions.create(
