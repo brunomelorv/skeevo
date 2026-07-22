@@ -1,16 +1,61 @@
 import asyncio
 import logging
 import re
+import json
 import httpx
+from datetime import datetime, timedelta
+import zoneinfo
 from openai import AsyncOpenAI
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.models import AgentSettings, Message
+from app.models import AgentSettings, Message, AppointmentModel
 from app.services.prompt_builder import build_system_prompt
+from app.services.availability_service import get_free_slots_for_date
 
 logger = logging.getLogger(__name__)
+
+AGENDA_TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "get_available_slots",
+            "description": "Obtém horários livres para agendamento de uma data.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "date": {
+                        "type": "string",
+                        "description": "A data desejada no formato YYYY-MM-DD"
+                    }
+                },
+                "required": ["date"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "book_appointment",
+            "description": "Realiza o agendamento da reunião para o lead.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "start_time": {
+                        "type": "string",
+                        "description": "A data e hora do agendamento no formato YYYY-MM-DD HH:MM"
+                    },
+                    "summary": {
+                        "type": "string",
+                        "description": "O resumo ou assunto da reunião"
+                    }
+                },
+                "required": ["start_time", "summary"]
+            }
+        }
+    }
+]
 
 
 async def send_waha_message(chat_id: str, text: str):
@@ -134,9 +179,61 @@ async def process_incoming_lead_message(
     response = await client.chat.completions.create(
         model=agent_settings.model or "gpt-4o-mini",
         messages=ai_messages,
+        tools=AGENDA_TOOLS,
     )
 
     reply_text = response.choices[0].message.content or ""
+
+    if response.choices[0].message.tool_calls:
+        tool_calls = response.choices[0].message.tool_calls
+        ai_messages.append(response.choices[0].message)
+        for tool_call in tool_calls:
+            if tool_call.type == "function":
+                func_name = tool_call.function.name
+                args = json.loads(tool_call.function.arguments)
+                
+                if func_name == "get_available_slots":
+                    date_str = args.get("date")
+                    slots = await get_free_slots_for_date(db, date_str)
+                    
+                    ai_messages.append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "name": func_name,
+                        "content": json.dumps(slots)
+                    })
+                    
+                elif func_name == "book_appointment":
+                    start_str = args.get("start_time")
+                    summary = args.get("summary")
+                    
+                    tz = zoneinfo.ZoneInfo("America/Sao_Paulo")
+                    start_dt = datetime.strptime(start_str, "%Y-%m-%d %H:%M").replace(tzinfo=tz)
+                    end_dt = start_dt + timedelta(minutes=30)
+                    
+                    new_appt = AppointmentModel(
+                        lead_id=lead_id,
+                        start_time=start_dt,
+                        end_time=end_dt,
+                        summary=summary,
+                        status="scheduled"
+                    )
+                    db.add(new_appt)
+                    await db.commit()
+                    
+                    ai_messages.append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "name": func_name,
+                        "content": json.dumps({"status": "success", "message": "Agendamento confirmado."})
+                    })
+                    
+        response = await client.chat.completions.create(
+            model=agent_settings.model or "gpt-4o-mini",
+            messages=ai_messages,
+            tools=AGENDA_TOOLS,
+        )
+        reply_text = response.choices[0].message.content or ""
 
     if agent_settings.split_long_messages:
         chunks = split_text_into_chunks(reply_text)
