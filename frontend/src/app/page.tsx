@@ -75,6 +75,7 @@ export default function Dashboard() {
         loading={loading}
         columns={columns}
         allLeads={allLeads}
+        waStatus={waStatus}
       />
 
       <WahaConnectionWizard onStatusChange={setWaStatus} />

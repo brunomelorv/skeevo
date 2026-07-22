@@ -14,7 +14,7 @@ export default function SiteHeader() {
       <div className="flex items-center gap-2">
         <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground">
           <Radio className="h-3 w-3 animate-pulse text-green-500" />
-          WAHA Online
+          Whatsapp online
         </div>
         <ThemeToggle />
       </div>

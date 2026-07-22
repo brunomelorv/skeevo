@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, UserCheck, Activity, Target } from "lucide-react";
+import { Users, UserCheck, Radio, Target } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -18,6 +18,7 @@ interface StatsCardsProps {
   loading: boolean;
   columns?: KanbanColumn[];
   allLeads?: Array<{ status: string }>;
+  waStatus?: string;
 }
 
 export default function StatsCards({
@@ -26,6 +27,7 @@ export default function StatsCards({
   loading,
   columns = [],
   allLeads = [],
+  waStatus = "",
 }: StatsCardsProps) {
   // Define a coluna padrão para o card de conversão (preferência por "ganho", se não existir pega a última)
   const defaultSlug = useMemo(() => {
@@ -50,12 +52,6 @@ export default function StatsCards({
   const total = totalLeads ?? allLeads.length;
   const denominator = total > 0 ? total : 1;
 
-  // Pipeline Ativo: leads que não estão com status 'perdido'
-  const activePipelineCount = useMemo(
-    () => allLeads.filter((l) => l.status !== "perdido").length,
-    [allLeads]
-  );
-
   // Conversão da coluna selecionada
   const selectedColCount = useMemo(
     () => allLeads.filter((l) => l.status === selectedSlug).length,
@@ -63,6 +59,9 @@ export default function StatsCards({
   );
 
   const conversionPct = Math.round((selectedColCount / denominator) * 100);
+
+  const isConnected = waStatus === "WORKING" || waStatus === "CONNECTED";
+  const isConnecting = waStatus === "SCAN_QR_CODE" || waStatus === "STARTING";
 
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -102,25 +101,7 @@ export default function StatsCards({
         </CardContent>
       </Card>
 
-      {/* Card 3: Pipeline Ativo (Substitui o antigo card do WhatsApp) */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Pipeline Ativo
-          </CardTitle>
-          <div className="flex size-10 items-center justify-center rounded-full border bg-chart-3/10 border-chart-3/20">
-            <Activity className="size-5 text-chart-3" />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold lg:text-3xl">
-            {loading ? "..." : activePipelineCount}
-          </div>
-          <p className="text-xs text-muted-foreground">Leads em atendimento no funil</p>
-        </CardContent>
-      </Card>
-
-      {/* Card 4: Conversão {Nome da Coluna} com Seletor Interativo */}
+      {/* Card 3: Conversão {Nome da Coluna} com Seletor Interativo */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div className="flex items-center gap-1">
@@ -149,6 +130,46 @@ export default function StatsCards({
             {loading ? "..." : `${selectedColCount} (${conversionPct}%)`}
           </div>
           <p className="text-xs text-muted-foreground">Taxa de conversão sobre o total</p>
+        </CardContent>
+      </Card>
+
+      {/* Card 4: Status de Conexão */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Status de Conexão
+          </CardTitle>
+          <div
+            className={`flex size-10 items-center justify-center rounded-full border ${
+              isConnected
+                ? "bg-green-500/10 border-green-500/20"
+                : isConnecting
+                ? "bg-amber-500/10 border-amber-500/20"
+                : "bg-muted border-border"
+            }`}
+          >
+            <Radio
+              className={`size-5 ${
+                isConnected
+                  ? "text-green-500 animate-pulse"
+                  : isConnecting
+                  ? "text-amber-500 animate-pulse"
+                  : "text-muted-foreground"
+              }`}
+            />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold lg:text-3xl">
+            {isConnected ? (
+              <span className="text-green-600 dark:text-green-500">Conectado</span>
+            ) : isConnecting ? (
+              <span className="text-amber-600 dark:text-amber-500">Aguardando QR</span>
+            ) : (
+              <span className="text-muted-foreground">Desconectado</span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">Motor de disparo do WhatsApp</p>
         </CardContent>
       </Card>
     </div>

@@ -8,7 +8,6 @@ import {
   Square,
   RefreshCw,
   Smartphone,
-  ShieldCheck,
   Zap,
   HelpCircle,
   Loader2,
@@ -166,20 +165,10 @@ export default function WahaConnectionWizard({ onStatusChange }: { onStatusChang
           </div>
         </div>
 
-        <Separator className="my-4" />
-
-        {isConnected ? (
-          <div className="flex items-center gap-3 rounded-lg border border-green-500/20 bg-green-500/5 p-3">
-            <ShieldCheck className="size-4 text-green-500 shrink-0" />
-            <span className="text-xs text-muted-foreground">
-              Sessão ativa e webhook registrado em{" "}
-              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-green-600">
-                http://backend:8000/webhook/waha
-              </code>
-              . Todas as mensagens recebidas serão capturadas automaticamente!
-            </span>
-          </div>
-        ) : needsQR ? (
+        {!isConnected && (
+          <>
+            <Separator className="my-4" />
+            {needsQR ? (
           <div className="flex flex-col md:flex-row items-center gap-6">
             <div className="rounded-xl border bg-muted/50 p-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -228,6 +217,8 @@ export default function WahaConnectionWizard({ onStatusChange }: { onStatusChang
               {startingSession ? "Iniciando Sessão..." : "Iniciar Sessão WhatsApp"}
             </Button>
           </div>
+        )}
+        </>
         )}
       </CardContent>
     </Card>
