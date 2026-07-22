@@ -8,6 +8,7 @@ import PipelineCard from "@/components/dashboard/PipelineCard";
 import RecentLeadsTable from "@/components/dashboard/RecentLeadsTable";
 import WahaConnectionWizard from "@/components/WahaConnectionWizard";
 import { useKanbanColumns } from "@/hooks/useKanbanColumns";
+import { apiFetch } from "@/lib/api";
 
 interface Lead {
   id: number;
@@ -30,13 +31,12 @@ export default function Dashboard() {
   const { columns } = useKanbanColumns();
 
   const fetchStats = async () => {
-    setLoading(true);
     try {
       const [countRes, todayRes, leadsRes, allRes] = await Promise.all([
-        fetch("http://localhost:8000/leads/count").then((r) => r.json()).catch(() => ({ total: 0 })),
-        fetch("http://localhost:8000/leads/today").then((r) => r.json()).catch(() => ({ total: 0 })),
-        fetch("http://localhost:8000/leads?limit=5").then((r) => r.json()).catch(() => []),
-        fetch("http://localhost:8000/leads?limit=100").then((r) => r.json()).catch(() => []),
+        apiFetch<{ total?: number }>("/leads/count").catch(() => ({ total: 0 })),
+        apiFetch<{ total?: number }>("/leads/today").catch(() => ({ total: 0 })),
+        apiFetch<Lead[]>("/leads?limit=5").catch(() => []),
+        apiFetch<Lead[]>("/leads?limit=100").catch(() => []),
       ]);
 
       setTotalLeads(countRes.total ?? 0);
