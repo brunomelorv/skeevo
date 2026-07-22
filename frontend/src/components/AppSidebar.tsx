@@ -9,6 +9,7 @@ import {
   Settings,
   Bot,
   CalendarClock,
+  CalendarDays,
   ShieldCheck,
 } from "lucide-react";
 import {
@@ -28,6 +29,7 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/chats", label: "Chats", icon: MessageSquare },
   { href: "/leads", label: "Leads", icon: Users },
+  { href: "/agenda", label: "Agenda", icon: CalendarDays },
   { href: "/auditoria", label: "Auditoria", icon: ShieldCheck },
   { href: "/agent", label: "Agente de IA", icon: Bot },
   { href: "/follow-up", label: "Follow Up", icon: CalendarClock },
