@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "belt": {
+      "source": "belt-sh/cli",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/belt/SKILL.md",
+      "computedHash": "ca4ce5eac764749f1f0cc67a94d464c3f66ba687bc9fa315949174770e5fc172"
+    },
+    "landing-page-design": {
+      "source": "101-skills/skills",
+      "sourceType": "github",
+      "skillPath": "guides/design/landing-page-design/SKILL.md",
+      "computedHash": "19ed3be1e7ee1620ecc3b5801ddcb936add37750f7cadb437afdd7394472f34b"
+    }
+  }
+}
