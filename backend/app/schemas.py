@@ -143,6 +143,7 @@ class KanbanColumnBase(BaseModel):
     badge_class: str = ""
     position: int = 0
     outcome_signal: Optional[str] = None
+    goal_description: Optional[str] = None
 
 
 class KanbanColumnCreate(BaseModel):
@@ -155,6 +156,7 @@ class KanbanColumnUpdate(BaseModel):
     badge_class: Optional[str] = None
     position: Optional[int] = None
     outcome_signal: Optional[str] = None
+    goal_description: Optional[str] = None
 
 
 class KanbanColumnRead(KanbanColumnBase):

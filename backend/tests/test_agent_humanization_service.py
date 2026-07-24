@@ -114,7 +114,10 @@ async def test_process_incoming_lead_message_organic_pipeline():
     mock_lessons_res = MagicMock()
     mock_lessons_res.scalars.return_value.all.return_value = []
 
-    db.execute.side_effect = [mock_settings_res, mock_lead_res, mock_msgs_res, mock_lessons_res]
+    mock_cols_res = MagicMock()
+    mock_cols_res.scalars.return_value.all.return_value = []
+
+    db.execute.side_effect = [mock_settings_res, mock_lead_res, mock_msgs_res, mock_lessons_res, mock_cols_res]
 
     mock_openai_instance = AsyncMock()
     ai_reply = "Primeiro parágrafo longo para teste.\n\nSegundo parágrafo longo para teste."

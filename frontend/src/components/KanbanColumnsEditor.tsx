@@ -37,6 +37,7 @@ interface KanbanColumnsEditorProps {
   onRemoveColumn: (id: string) => void;
   onMoveLeads: (leadIds: number[], targetStatus: string) => Promise<void>;
   onUpdateOutcomeSignal?: (id: string, signal: "positivo" | "negativo" | null) => void;
+  onUpdateGoalDescription?: (id: string, goal: string) => void;
 }
 
 export default function KanbanColumnsEditor({
@@ -48,6 +49,7 @@ export default function KanbanColumnsEditor({
   onRemoveColumn,
   onMoveLeads,
   onUpdateOutcomeSignal,
+  onUpdateGoalDescription,
 }: KanbanColumnsEditorProps) {
   const [newLabel, setNewLabel] = useState("");
   const [migration, setMigration] = useState<MigrationState | null>(null);
@@ -150,7 +152,7 @@ export default function KanbanColumnsEditor({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col gap-4 overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Tag className="size-4" />
@@ -261,8 +263,8 @@ export default function KanbanColumnsEditor({
           </div>
         )}
 
-        {/* Lista de colunas */}
-        <div className="space-y-1.5">
+        {/* Lista de colunas com rolagem interna */}
+        <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
           {columns.map((col) => {
             const count = (leadsPerColumn[col.id] ?? []).length;
             const isOnlyColumn = columns.length <= MIN_COLUMNS;
@@ -273,69 +275,99 @@ export default function KanbanColumnsEditor({
             return (
               <div
                 key={col.id}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg border bg-card transition-colors ${
+                className={`p-3.5 rounded-lg border bg-card transition-colors space-y-3 ${
                   isMigrating ? "border-amber-500/50 bg-amber-500/5" : ""
                 }`}
               >
-                {/* Pill de cor */}
-                <span
-                  className={`inline-block size-2.5 rounded-full shrink-0 ${col.color}`}
-                />
-                {/* Nome */}
-                <span className="text-sm font-medium flex-1 truncate">
-                  {col.label}
-                </span>
-                {/* Contagem */}
-                <Badge
-                  variant="outline"
-                  className={`text-[10px] px-1.5 py-0 font-medium shrink-0 ${col.badgeClass}`}
-                >
-                  {count}
-                </Badge>
-                {/* Sinal de Resultado (Aprendizado) */}
-                <Select
-                  value={col.outcomeSignal ?? "nenhum"}
-                  onValueChange={(val) => {
-                    const signal = val === "positivo" ? "positivo" : val === "negativo" ? "negativo" : null;
-                    onUpdateOutcomeSignal?.(col.id, signal);
-                  }}
-                >
-                  <SelectTrigger className="h-7 w-[125px] text-xs shrink-0">
-                    <SelectValue placeholder="Sinal..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="nenhum">Nenhum</SelectItem>
-                    <SelectItem value="positivo">Positivo (meta)</SelectItem>
-                    <SelectItem value="negativo">Negativo (perdido)</SelectItem>
-                  </SelectContent>
-                </Select>
-                {/* Botão remover */}
-                {isBlocked ? (
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    disabled
-                    title={
-                      isOnlyColumn
-                        ? "Precisa de ao menos 1 coluna"
-                        : `Mova os ${count} leads antes de remover`
-                    }
-                    className="shrink-0 text-muted-foreground/40"
-                    onClick={() => handleRemoveClick(col)}
-                  >
-                    <Lock className="size-3.5" />
-                  </Button>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    title="Remover coluna"
-                    className="shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                    onClick={() => handleRemoveClick(col)}
-                  >
-                    <Trash2 className="size-3.5" />
-                  </Button>
-                )}
+                {/* Cabeçalho da Coluna */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-block size-3 rounded-full shrink-0 ${col.color}`}
+                    />
+                    <span className="text-sm font-semibold tracking-tight">
+                      {col.label}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] px-2 py-0.5 font-medium shrink-0 ${col.badgeClass}`}
+                    >
+                      {count} {count === 1 ? "lead" : "leads"}
+                    </Badge>
+                  </div>
+
+                  {/* Botão remover */}
+                  {isBlocked ? (
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      disabled
+                      title={
+                        isOnlyColumn
+                          ? "Precisa de ao menos 1 coluna"
+                          : `Mova os ${count} leads antes de remover`
+                      }
+                      className="shrink-0 text-muted-foreground/40"
+                      onClick={() => handleRemoveClick(col)}
+                    >
+                      <Lock className="size-3.5" />
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      title="Remover coluna"
+                      className="shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => handleRemoveClick(col)}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  )}
+                </div>
+
+                {/* Grade de Configurações */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-border/40">
+                  {/* Objetivo para a IA */}
+                  <div className="sm:col-span-2 space-y-1">
+                    <label className="text-[11px] font-medium text-muted-foreground">
+                      Objetivo para a IA (Movimentação Automática)
+                    </label>
+                    <Input
+                      placeholder="Ex: Quando o lead aceitar agendar uma reunião..."
+                      defaultValue={col.goalDescription ?? ""}
+                      onBlur={(e) => {
+                        const val = e.target.value;
+                        if (val !== (col.goalDescription ?? "")) {
+                          onUpdateGoalDescription?.(col.id, val);
+                        }
+                      }}
+                      className="h-8 text-xs bg-background/80"
+                    />
+                  </div>
+
+                  {/* Sinal de Resultado (Aprendizado) */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-muted-foreground">
+                      Sinal (Aprendizado)
+                    </label>
+                    <Select
+                      value={col.outcomeSignal ?? "nenhum"}
+                      onValueChange={(val) => {
+                        const signal = val === "positivo" ? "positivo" : val === "negativo" ? "negativo" : null;
+                        onUpdateOutcomeSignal?.(col.id, signal);
+                      }}
+                    >
+                      <SelectTrigger className="h-8 text-xs bg-background/80">
+                        <SelectValue placeholder="Sinal..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="nenhum">Nenhum</SelectItem>
+                        <SelectItem value="positivo">Positivo (meta)</SelectItem>
+                        <SelectItem value="negativo">Negativo (perdido)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
             );
           })}

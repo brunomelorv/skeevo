@@ -21,6 +21,7 @@ async def lifespan(app: FastAPI):
         await conn.execute(text("ALTER TABLE leads ADD COLUMN IF NOT EXISTS profile_picture_url TEXT;"))
         await conn.execute(text("ALTER TABLE leads ADD COLUMN IF NOT EXISTS memory JSONB DEFAULT '[]'::jsonb;"))
         await conn.execute(text("ALTER TABLE kanban_columns ADD COLUMN IF NOT EXISTS outcome_signal VARCHAR(20);"))
+        await conn.execute(text("ALTER TABLE kanban_columns ADD COLUMN IF NOT EXISTS goal_description TEXT;"))
     worker_task = asyncio.create_task(run_followup_worker_loop())
     try:
         yield

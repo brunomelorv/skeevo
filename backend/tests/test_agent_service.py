@@ -1,7 +1,7 @@
 import json
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from app.models import AgentSettings, Message, Lead
+from app.models import AgentSettings, Message, Lead, KanbanColumnModel
 from app.services.agent_service import send_waha_message, process_incoming_lead_message
 from app.services.lead_service import upsert_lead
 
@@ -101,7 +101,10 @@ async def test_process_incoming_lead_message_enabled():
     mock_lessons_res = MagicMock()
     mock_lessons_res.scalars.return_value.all.return_value = []
 
-    db.execute.side_effect = [mock_settings_res, mock_lead_res, mock_msgs_res, mock_lessons_res]
+    mock_cols_res = MagicMock()
+    mock_cols_res.scalars.return_value.all.return_value = []
+
+    db.execute.side_effect = [mock_settings_res, mock_lead_res, mock_msgs_res, mock_lessons_res, mock_cols_res]
 
     # Mock OpenAI AsyncClient
     mock_openai_instance = AsyncMock()
@@ -177,7 +180,10 @@ async def test_process_incoming_lead_save_memory_tool():
     mock_lessons_res = MagicMock()
     mock_lessons_res.scalars.return_value.all.return_value = []
 
-    db.execute.side_effect = [mock_settings_res, mock_lead_res, mock_msgs_res, mock_lessons_res]
+    mock_cols_res = MagicMock()
+    mock_cols_res.scalars.return_value.all.return_value = []
+
+    db.execute.side_effect = [mock_settings_res, mock_lead_res, mock_msgs_res, mock_lessons_res, mock_cols_res]
 
     # Mock tool call in response 1
     mock_tool_call = MagicMock()
@@ -222,6 +228,96 @@ async def test_process_incoming_lead_save_memory_tool():
         assert json.loads(tool_resp["content"]) == {"status": "saved"}
 
         mock_send_waha.assert_called_once_with("5511999999999@c.us", "Anotado! Qual a sua maior dificuldade hoje?")
+
+
+@pytest.mark.asyncio
+async def test_process_incoming_lead_move_kanban_tool():
+    db = AsyncMock()
+    db.add = MagicMock()
+
+    settings = AgentSettings(
+        id=1,
+        is_enabled=True,
+        openai_api_key="sk-valid-key",
+        model="gpt-4o-mini",
+        max_history_messages=15,
+    )
+
+    test_lead = Lead(
+        id=1,
+        phone="5511999999999",
+        status="novo",
+        memory=[],
+    )
+
+    lead_message = Message(
+        id=10,
+        lead_id=1,
+        body="Gostaria de agendar uma reunião amanhã",
+        from_me=False,
+        chat_id="5511999999999@c.us",
+    )
+
+    qualificado_col = KanbanColumnModel(id=2, slug="qualificado", label="Qualificado", position=2, outcome_signal="positivo")
+
+    mock_settings_res = MagicMock()
+    mock_settings_res.scalar_one_or_none.return_value = settings
+
+    mock_lead_res = MagicMock()
+    mock_lead_res.scalar_one_or_none.return_value = test_lead
+
+    mock_msgs_res = MagicMock()
+    mock_msgs_res.scalars.return_value.all.return_value = [lead_message]
+
+    mock_lessons_res = MagicMock()
+    mock_lessons_res.scalars.return_value.all.return_value = []
+
+    mock_cols_res = MagicMock()
+    mock_cols_res.scalars.return_value.all.return_value = [qualificado_col]
+
+    db.execute.side_effect = [mock_settings_res, mock_lead_res, mock_msgs_res, mock_lessons_res, mock_cols_res]
+
+    # Mock tool call
+    mock_tool_call = MagicMock()
+    mock_tool_call.id = "call_move_123"
+    mock_tool_call.type = "function"
+    mock_tool_call.function.name = "move_lead_kanban"
+    mock_tool_call.function.arguments = '{"target_slug": "qualificado", "reason": "Lead solicitou reunião"}'
+
+    mock_msg1 = MagicMock()
+    mock_msg1.content = None
+    mock_msg1.tool_calls = [mock_tool_call]
+    mock_resp1 = MagicMock()
+    mock_resp1.choices = [MagicMock(message=mock_msg1)]
+
+    mock_msg2 = MagicMock()
+    mock_msg2.content = "Perfeito, movi você para a etapa Qualificado!"
+    mock_msg2.tool_calls = None
+    mock_resp2 = MagicMock()
+    mock_resp2.choices = [MagicMock(message=mock_msg2)]
+
+    mock_openai_instance = AsyncMock()
+    mock_openai_instance.chat.completions.create.side_effect = [mock_resp1, mock_resp2]
+
+    with patch("app.services.agent_service.AsyncOpenAI", return_value=mock_openai_instance), \
+         patch("app.services.agent_service.send_waha_message", new_callable=AsyncMock) as mock_send_waha, \
+         patch("app.routes.followup.get_or_create_config", new_callable=AsyncMock) as mock_get_config, \
+         patch("app.routes.followup.cancel_lead_followups", new_callable=AsyncMock) as mock_cancel_followups, \
+         patch("app.routes.followup.schedule_lead_followups", new_callable=AsyncMock) as mock_sched_followups:
+
+        mock_config = MagicMock()
+        mock_config.target_statuses = ["novo"]
+        mock_get_config.return_value = mock_config
+
+        res = await process_incoming_lead_message(db, lead_id=1, chat_id="5511999999999@c.us")
+
+        assert res is True
+        assert test_lead.status == "qualificado"
+        assert db.add.call_count >= 2  # AuditLogModel and Message added
+        db.commit.assert_called()
+        mock_cancel_followups.assert_called_once_with(db, 1, reason="ai_moved_to_qualificado")
+        mock_send_waha.assert_called_once_with("5511999999999@c.us", "Perfeito, movi você para a etapa Qualificado!")
+
 
 
 

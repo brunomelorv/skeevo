@@ -156,6 +156,8 @@ async def update_kanban_column(column_id: int, data: KanbanColumnUpdate, db: Asy
         col.position = data.position
     if data.outcome_signal is not None:
         col.outcome_signal = data.outcome_signal if data.outcome_signal in ("positivo", "negativo") else None
+    if data.goal_description is not None:
+        col.goal_description = data.goal_description.strip() if data.goal_description.strip() else None
 
     audit_entry = AuditLogModel(
         category="kanban",

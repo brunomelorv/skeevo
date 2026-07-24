@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.models import AgentSettings, Message, AppointmentModel, Lead, AgentLesson
+from app.models import AgentSettings, Message, AppointmentModel, Lead, AgentLesson, KanbanColumnModel, AuditLogModel
 from app.services.prompt_builder import build_system_prompt
 from app.services.availability_service import get_free_slots_for_date
 
@@ -69,6 +69,27 @@ AGENDA_TOOLS = [
                     }
                 },
                 "required": ["fact"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "move_lead_kanban",
+            "description": "Move o lead para uma nova coluna do Kanban quando o objetivo da coluna for atingido ou quando o lead demonstrar desinteresse/recusa.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "target_slug": {
+                        "type": "string",
+                        "description": "O slug exato da coluna de destino (ex: qualificado, perdido, em_atendimento, ganho)"
+                    },
+                    "reason": {
+                        "type": "string",
+                        "description": "Motivo resumido pelo qual o lead está sendo movido para essa coluna"
+                    }
+                },
+                "required": ["target_slug", "reason"]
             }
         }
     }
@@ -194,10 +215,15 @@ async def process_incoming_lead_message(
     )
     lessons = [{"outcome": l.outcome, "lesson": l.lesson} for l in lessons_result.scalars().all()]
 
+    cols_stmt = select(KanbanColumnModel).order_by(KanbanColumnModel.position.asc(), KanbanColumnModel.id.asc())
+    cols_result = await db.execute(cols_stmt)
+    kanban_columns = cols_result.scalars().all()
+
     system_prompt = build_system_prompt(
         agent_settings,
         lead_memory=lead.memory if lead else [],
         lessons=lessons,
+        kanban_columns=kanban_columns,
     )
     ai_messages = build_openai_messages_payload(
         system_prompt=system_prompt,
@@ -274,6 +300,53 @@ async def process_incoming_lead_message(
                         "tool_call_id": tool_call.id,
                         "name": func_name,
                         "content": json.dumps({"status": "saved"})
+                    })
+                    
+                elif func_name == "move_lead_kanban":
+                    target_slug = (args.get("target_slug") or "").strip()
+                    reason = (args.get("reason") or "").strip()
+                    
+                    target_col = next((c for c in kanban_columns if c.slug == target_slug), None)
+                    if target_col and lead:
+                        old_status = lead.status
+                        lead.status = target_slug
+                        lead.updated_at = datetime.now(zoneinfo.ZoneInfo("America/Sao_Paulo"))
+
+                        lead_identifier = lead.push_name or lead.name or lead.phone
+                        audit_entry = AuditLogModel(
+                            category="lead_movement",
+                            action="ai_status_changed",
+                            entity_type="lead",
+                            entity_id=str(lead.id),
+                            title=f"IA moveu '{lead_identifier}': '{old_status}' → '{target_slug}'",
+                            details={
+                                "lead_id": lead.id,
+                                "previous_status": old_status,
+                                "new_status": target_slug,
+                                "reason": reason,
+                            },
+                        )
+                        db.add(audit_entry)
+
+                        from app.routes.followup import get_or_create_config, cancel_lead_followups, schedule_lead_followups
+                        config = await get_or_create_config(db)
+                        target_statuses = config.target_statuses or []
+                        if target_slug not in target_statuses:
+                            await cancel_lead_followups(db, lead.id, reason=f"ai_moved_to_{target_slug}")
+                        else:
+                            await schedule_lead_followups(db, lead)
+
+                        if target_col.outcome_signal in ("positivo", "negativo"):
+                            from app.services.lesson_service import analyze_lead_outcome
+                            asyncio.create_task(analyze_lead_outcome(lead.id, target_col.outcome_signal))
+
+                        await db.commit()
+
+                    ai_messages.append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "name": func_name,
+                        "content": json.dumps({"status": "success", "new_status": target_slug})
                     })
                     
         response = await client.chat.completions.create(

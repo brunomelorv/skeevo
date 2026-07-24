@@ -9,6 +9,7 @@ export interface KanbanColumn {
   color: string;
   badgeClass: string;
   outcomeSignal?: "positivo" | "negativo" | null;
+  goalDescription?: string | null;
 }
 
 export const DEFAULT_COLUMNS: KanbanColumn[] = [
@@ -82,6 +83,7 @@ export function useKanbanColumns() {
             color: c.color || "bg-chart-1",
             badgeClass: c.badge_class || "bg-chart-1/10 text-chart-1 border-chart-1/20",
             outcomeSignal: c.outcome_signal ?? null,
+            goalDescription: c.goal_description ?? null,
           }));
           setColumns(mapped);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(mapped));
@@ -198,6 +200,30 @@ export function useKanbanColumns() {
     [columns, fetchColumnsFromBackend]
   );
 
+  const updateGoalDescription = useCallback(
+    async (id: string, goal: string) => {
+      const targetCol = columns.find((c) => c.id === id);
+      if (targetCol?.db_id) {
+        try {
+          await fetch(`http://localhost:8000/kanban/columns/${targetCol.db_id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ goal_description: goal }),
+          });
+          await fetchColumnsFromBackend();
+          return;
+        } catch (e) {
+          console.error("Erro ao atualizar objetivo da coluna no backend:", e);
+        }
+      }
+
+      const updated = columns.map((c) => (c.id === id ? { ...c, goalDescription: goal } : c));
+      setColumns(updated);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    },
+    [columns, fetchColumnsFromBackend]
+  );
+
   return {
     columns,
     loading,
@@ -205,6 +231,7 @@ export function useKanbanColumns() {
     removeColumn,
     renameColumn,
     updateOutcomeSignal,
+    updateGoalDescription,
     refreshColumns: fetchColumnsFromBackend,
     canAdd: columns.length < MAX_COLUMNS,
     canRemove: columns.length > MIN_COLUMNS,

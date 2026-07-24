@@ -83,3 +83,23 @@ def test_build_system_prompt_with_lessons():
     assert "- Mandar preço de cara faz o cliente sumir." in prompt
 
 
+def test_build_system_prompt_empty_kanban_columns():
+    settings_dict = {"agent_name": "Assistente"}
+    prompt = build_system_prompt(settings_dict, kanban_columns=[])
+    assert "<etapas_kanban>" in prompt
+    assert "Nenhuma etapa configurada." in prompt
+
+
+def test_build_system_prompt_with_kanban_columns():
+    settings_dict = {"agent_name": "Assistente"}
+    columns = [
+        {"slug": "novo", "label": "Novo", "goal_description": "Lead recém-chegado."},
+        {"slug": "qualificado", "label": "Qualificado", "goal_description": "Quando aceitar reunião."},
+    ]
+    prompt = build_system_prompt(settings_dict, kanban_columns=columns)
+    assert "<etapas_kanban>" in prompt
+    assert "- Novo (slug: \"novo\"): Lead recém-chegado." in prompt
+    assert "- Qualificado (slug: \"qualificado\"): Quando aceitar reunião." in prompt
+
+
+

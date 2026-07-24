@@ -1,4 +1,9 @@
-def build_system_prompt(settings, lead_memory: list = None, lessons: list = None) -> str:
+def build_system_prompt(
+    settings,
+    lead_memory: list = None,
+    lessons: list = None,
+    kanban_columns: list = None,
+) -> str:
     def _get_val(obj, key, default=""):
         if isinstance(obj, dict):
             val = obj.get(key, default)
@@ -21,6 +26,19 @@ def build_system_prompt(settings, lead_memory: list = None, lessons: list = None
             formatted_examples.append(f"Exemplo {idx + 1}\nLead: {lead_msg}\n{agent_name}: {reply_msg}")
 
     examples_block = "\n\n".join(formatted_examples)
+
+    if not kanban_columns:
+        kanban_block = "Nenhuma etapa configurada."
+    else:
+        formatted_cols = []
+        for col in kanban_columns:
+            slug = _get_val(col, "slug", "")
+            label = _get_val(col, "label", slug)
+            goal = (_get_val(col, "goal_description", "") or "").strip()
+            goal_text = f": {goal}" if goal else ""
+            if slug:
+                formatted_cols.append(f"- {label} (slug: \"{slug}\"){goal_text}")
+        kanban_block = "\n".join(formatted_cols) if formatted_cols else "Nenhuma etapa configurada."
 
     if not lead_memory:
         memory_block = "Nenhum fato registrado ainda sobre este lead — é a base zerada."
@@ -74,6 +92,10 @@ Empresa: {business_name}
 {instrucoes}
 </instrucoes>
 
+<etapas_kanban>
+{kanban_block}
+</etapas_kanban>
+
 <memoria_do_lead>
 {memory_block}
 </memoria_do_lead>
@@ -89,5 +111,6 @@ Empresa: {business_name}
 <contexto>
 {contexto}
 </contexto>"""
+
 
 
