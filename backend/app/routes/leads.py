@@ -1,10 +1,10 @@
 import inspect
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models import Lead, Message, LeadFollowup
+from app.models import Lead, Message, LeadFollowup, KanbanColumnModel
 from app.schemas import LeadResponse, MessageResponse, LeadStatusUpdate, SendMessageRequest
 from app.routes.followup import (
     get_or_create_config,
@@ -58,6 +58,7 @@ async def get_lead(lead_id: int, db: AsyncSession = Depends(get_db)):
 async def update_lead_status(
     lead_id: int,
     payload: LeadStatusUpdate,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(select(Lead).where(Lead.id == lead_id))
@@ -88,6 +89,12 @@ async def update_lead_status(
         },
     )
     db.add(audit_entry)
+
+    col_result = await db.execute(select(KanbanColumnModel).where(KanbanColumnModel.slug == new_status))
+    target_col = col_result.scalar_one_or_none()
+    if target_col and target_col.outcome_signal in ("positivo", "negativo"):
+        from app.services.lesson_service import analyze_lead_outcome
+        background_tasks.add_task(analyze_lead_outcome, lead.id, target_col.outcome_signal)
 
     config = await get_or_create_config(db)
     target_statuses = config.target_statuses or []

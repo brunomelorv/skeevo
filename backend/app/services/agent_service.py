@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.models import AgentSettings, Message, AppointmentModel, Lead
+from app.models import AgentSettings, Message, AppointmentModel, Lead, AgentLesson
 from app.services.prompt_builder import build_system_prompt
 from app.services.availability_service import get_free_slots_for_date
 
@@ -189,7 +189,16 @@ async def process_incoming_lead_message(
     msg_result = await db.execute(msg_stmt)
     messages = list(reversed(msg_result.scalars().all()))
 
-    system_prompt = build_system_prompt(agent_settings, lead_memory=lead.memory if lead else [])
+    lessons_result = await db.execute(
+        select(AgentLesson).order_by(AgentLesson.created_at.desc()).limit(20)
+    )
+    lessons = [{"outcome": l.outcome, "lesson": l.lesson} for l in lessons_result.scalars().all()]
+
+    system_prompt = build_system_prompt(
+        agent_settings,
+        lead_memory=lead.memory if lead else [],
+        lessons=lessons,
+    )
     ai_messages = build_openai_messages_payload(
         system_prompt=system_prompt,
         history_messages=messages,

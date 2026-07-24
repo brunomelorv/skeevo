@@ -98,7 +98,10 @@ async def test_process_incoming_lead_message_enabled():
     mock_msgs_res = MagicMock()
     mock_msgs_res.scalars.return_value.all.return_value = [lead_message]
 
-    db.execute.side_effect = [mock_settings_res, mock_lead_res, mock_msgs_res]
+    mock_lessons_res = MagicMock()
+    mock_lessons_res.scalars.return_value.all.return_value = []
+
+    db.execute.side_effect = [mock_settings_res, mock_lead_res, mock_msgs_res, mock_lessons_res]
 
     # Mock OpenAI AsyncClient
     mock_openai_instance = AsyncMock()
@@ -171,7 +174,10 @@ async def test_process_incoming_lead_save_memory_tool():
     mock_msgs_res = MagicMock()
     mock_msgs_res.scalars.return_value.all.return_value = [lead_message]
 
-    db.execute.side_effect = [mock_settings_res, mock_lead_res, mock_msgs_res]
+    mock_lessons_res = MagicMock()
+    mock_lessons_res.scalars.return_value.all.return_value = []
+
+    db.execute.side_effect = [mock_settings_res, mock_lead_res, mock_msgs_res, mock_lessons_res]
 
     # Mock tool call in response 1
     mock_tool_call = MagicMock()

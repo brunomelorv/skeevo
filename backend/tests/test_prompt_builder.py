@@ -61,3 +61,25 @@ def test_build_system_prompt_with_lead_memory():
     assert "- Nome do negócio é PetShop Cao" in prompt
     assert "- Já perguntou preço" in prompt
 
+
+def test_build_system_prompt_empty_lessons():
+    settings_dict = {"agent_name": "Assistente"}
+    prompt = build_system_prompt(settings_dict, lessons=[])
+    assert "<licoes_aprendidas>" in prompt
+    assert "Ainda não há lições acumuladas de conversas anteriores." in prompt
+
+
+def test_build_system_prompt_with_lessons():
+    settings_dict = {"agent_name": "Assistente"}
+    lessons = [
+        {"outcome": "positivo", "lesson": "Perguntar sobre o tamanho da empresa gera engajamento."},
+        {"outcome": "negativo", "lesson": "Mandar preço de cara faz o cliente sumir."},
+    ]
+    prompt = build_system_prompt(settings_dict, lessons=lessons)
+    assert "<licoes_aprendidas>" in prompt
+    assert "O que costuma funcionar" in prompt
+    assert "- Perguntar sobre o tamanho da empresa gera engajamento." in prompt
+    assert "O que evitar" in prompt
+    assert "- Mandar preço de cara faz o cliente sumir." in prompt
+
+

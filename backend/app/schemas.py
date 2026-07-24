@@ -142,6 +142,7 @@ class KanbanColumnBase(BaseModel):
     color: str = "bg-chart-1"
     badge_class: str = ""
     position: int = 0
+    outcome_signal: Optional[str] = None
 
 
 class KanbanColumnCreate(BaseModel):
@@ -153,6 +154,7 @@ class KanbanColumnUpdate(BaseModel):
     color: Optional[str] = None
     badge_class: Optional[str] = None
     position: Optional[int] = None
+    outcome_signal: Optional[str] = None
 
 
 class KanbanColumnRead(KanbanColumnBase):

@@ -36,6 +36,7 @@ interface KanbanColumnsEditorProps {
   onAddColumn: (label: string) => void;
   onRemoveColumn: (id: string) => void;
   onMoveLeads: (leadIds: number[], targetStatus: string) => Promise<void>;
+  onUpdateOutcomeSignal?: (id: string, signal: "positivo" | "negativo" | null) => void;
 }
 
 export default function KanbanColumnsEditor({
@@ -46,6 +47,7 @@ export default function KanbanColumnsEditor({
   onAddColumn,
   onRemoveColumn,
   onMoveLeads,
+  onUpdateOutcomeSignal,
 }: KanbanColumnsEditorProps) {
   const [newLabel, setNewLabel] = useState("");
   const [migration, setMigration] = useState<MigrationState | null>(null);
@@ -290,6 +292,23 @@ export default function KanbanColumnsEditor({
                 >
                   {count}
                 </Badge>
+                {/* Sinal de Resultado (Aprendizado) */}
+                <Select
+                  value={col.outcomeSignal ?? "nenhum"}
+                  onValueChange={(val) => {
+                    const signal = val === "positivo" ? "positivo" : val === "negativo" ? "negativo" : null;
+                    onUpdateOutcomeSignal?.(col.id, signal);
+                  }}
+                >
+                  <SelectTrigger className="h-7 w-[125px] text-xs shrink-0">
+                    <SelectValue placeholder="Sinal..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nenhum">Nenhum</SelectItem>
+                    <SelectItem value="positivo">Positivo (meta)</SelectItem>
+                    <SelectItem value="negativo">Negativo (perdido)</SelectItem>
+                  </SelectContent>
+                </Select>
                 {/* Botão remover */}
                 {isBlocked ? (
                   <Button

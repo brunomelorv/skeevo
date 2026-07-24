@@ -100,8 +100,20 @@ class KanbanColumnModel(Base):
     color = Column(String(50), nullable=False, default="bg-chart-1")
     badge_class = Column(String(255), nullable=False, default="")
     position = Column(Integer, nullable=False, default=0)
+    outcome_signal = Column(String(20), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class AgentLesson(Base):
+    __tablename__ = "agent_lessons"
+
+    id = Column(Integer, primary_key=True, index=True)
+    lead_id = Column(Integer, ForeignKey("leads.id"), nullable=True, index=True)
+    outcome = Column(String(20), nullable=False)
+    lesson = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
 
 
 class AuditLogModel(Base):

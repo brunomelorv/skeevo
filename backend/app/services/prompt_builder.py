@@ -1,4 +1,4 @@
-def build_system_prompt(settings, lead_memory: list = None) -> str:
+def build_system_prompt(settings, lead_memory: list = None, lessons: list = None) -> str:
     def _get_val(obj, key, default=""):
         if isinstance(obj, dict):
             val = obj.get(key, default)
@@ -35,6 +35,32 @@ def build_system_prompt(settings, lead_memory: list = None) -> str:
                 formatted_facts.append(f"- {fact_str}")
         memory_block = "\n".join(formatted_facts) if formatted_facts else "Nenhum fato registrado ainda sobre este lead — é a base zerada."
 
+    if not lessons:
+        lessons_block = "Ainda não há lições acumuladas de conversas anteriores."
+    else:
+        positives = []
+        negatives = []
+        for item in lessons:
+            if isinstance(item, dict):
+                outcome = item.get("outcome")
+                text = (item.get("lesson") or "").strip()
+            else:
+                outcome = getattr(item, "outcome", None)
+                text = (getattr(item, "lesson", "") or "").strip()
+            if not text:
+                continue
+            if outcome == "positivo":
+                positives.append(f"- {text}")
+            elif outcome == "negativo":
+                negatives.append(f"- {text}")
+
+        parts = []
+        if positives:
+            parts.append("O que costuma funcionar:\n" + "\n".join(positives))
+        if negatives:
+            parts.append("O que evitar:\n" + "\n".join(negatives))
+        lessons_block = "\n\n".join(parts) if parts else "Ainda não há lições acumuladas de conversas anteriores."
+
     return f"""# Diretrizes do Agente
 
 Agente: {agent_name}
@@ -52,6 +78,10 @@ Empresa: {business_name}
 {memory_block}
 </memoria_do_lead>
 
+<licoes_aprendidas>
+{lessons_block}
+</licoes_aprendidas>
+
 <exemplos>
 {examples_block}
 </exemplos>
@@ -59,4 +89,5 @@ Empresa: {business_name}
 <contexto>
 {contexto}
 </contexto>"""
+
 

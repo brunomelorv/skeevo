@@ -59,7 +59,7 @@ export default function LeadsPage() {
   const [viewMode, setViewMode] = useState<"table" | "kanban">("kanban");
   const [columnsEditorOpen, setColumnsEditorOpen] = useState(false);
 
-  const { columns, addColumn, removeColumn, canAdd } = useKanbanColumns();
+  const { columns, addColumn, removeColumn, canAdd, updateOutcomeSignal } = useKanbanColumns();
 
   /** statusConfig derivado dinamicamente das colunas ativas */
   const statusConfig = useMemo(
@@ -450,6 +450,7 @@ export default function LeadsPage() {
         onAddColumn={addColumn}
         onRemoveColumn={removeColumn}
         onMoveLeads={handleMoveLeads}
+        onUpdateOutcomeSignal={updateOutcomeSignal}
       />
     </div>
   );
