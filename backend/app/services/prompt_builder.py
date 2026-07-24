@@ -1,4 +1,4 @@
-def build_system_prompt(settings) -> str:
+def build_system_prompt(settings, lead_memory: list = None) -> str:
     def _get_val(obj, key, default=""):
         if isinstance(obj, dict):
             val = obj.get(key, default)
@@ -22,6 +22,19 @@ def build_system_prompt(settings) -> str:
 
     examples_block = "\n\n".join(formatted_examples)
 
+    if not lead_memory:
+        memory_block = "Nenhum fato registrado ainda sobre este lead — é a base zerada."
+    else:
+        formatted_facts = []
+        for item in lead_memory:
+            if isinstance(item, dict):
+                fact_str = (item.get("fact") or "").strip()
+            else:
+                fact_str = str(item).strip()
+            if fact_str:
+                formatted_facts.append(f"- {fact_str}")
+        memory_block = "\n".join(formatted_facts) if formatted_facts else "Nenhum fato registrado ainda sobre este lead — é a base zerada."
+
     return f"""# Diretrizes do Agente
 
 Agente: {agent_name}
@@ -35,6 +48,10 @@ Empresa: {business_name}
 {instrucoes}
 </instrucoes>
 
+<memoria_do_lead>
+{memory_block}
+</memoria_do_lead>
+
 <exemplos>
 {examples_block}
 </exemplos>
@@ -42,3 +59,4 @@ Empresa: {business_name}
 <contexto>
 {contexto}
 </contexto>"""
+

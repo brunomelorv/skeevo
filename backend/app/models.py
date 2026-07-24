@@ -16,6 +16,7 @@ class Lead(Base):
     first_message_at = Column(DateTime(timezone=True), server_default=func.now())
     last_message_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     status = Column(String(50), default="novo", index=True)
+    memory = Column(JSON, default=list)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

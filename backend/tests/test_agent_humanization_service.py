@@ -1,12 +1,13 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from app.models import AgentSettings, Message
+from app.models import AgentSettings, Message, Lead
 from app.services.agent_service import (
     split_text_into_chunks,
     calculate_typing_delay,
     send_waha_presence,
     process_incoming_lead_message,
 )
+
 
 
 def test_split_text_into_chunks():
@@ -103,10 +104,14 @@ async def test_process_incoming_lead_message_organic_pipeline():
     mock_settings_res = MagicMock()
     mock_settings_res.scalar_one_or_none.return_value = settings
 
+    test_lead = Lead(id=1, phone="5511999999999", memory=[])
+    mock_lead_res = MagicMock()
+    mock_lead_res.scalar_one_or_none.return_value = test_lead
+
     mock_msgs_res = MagicMock()
     mock_msgs_res.scalars.return_value.all.return_value = [lead_message]
 
-    db.execute.side_effect = [mock_settings_res, mock_msgs_res]
+    db.execute.side_effect = [mock_settings_res, mock_lead_res, mock_msgs_res]
 
     mock_openai_instance = AsyncMock()
     ai_reply = "Primeiro parágrafo longo para teste.\n\nSegundo parágrafo longo para teste."

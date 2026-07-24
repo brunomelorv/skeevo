@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.models import AgentSettings, Message, AppointmentModel
+from app.models import AgentSettings, Message, AppointmentModel, Lead
 from app.services.prompt_builder import build_system_prompt
 from app.services.availability_service import get_free_slots_for_date
 
@@ -52,6 +52,23 @@ AGENDA_TOOLS = [
                     }
                 },
                 "required": ["start_time", "summary"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "save_lead_memory",
+            "description": "Salva um fato durável sobre esse lead para lembrar em conversas futuras (nome do negócio, ramo, dor principal, objeção levantada, se já perguntou preço, se já foi convidado pra call, etc). Não use para coisas triviais ou temporárias.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "fact": {
+                        "type": "string",
+                        "description": "O fato a guardar, em poucas palavras, em português"
+                    }
+                },
+                "required": ["fact"]
             }
         }
     }
@@ -158,6 +175,10 @@ async def process_incoming_lead_message(
     if not agent_settings or not agent_settings.is_enabled or not agent_settings.openai_api_key or not agent_settings.openai_api_key.strip():
         return False
 
+    lead_stmt = select(Lead).where(Lead.id == lead_id)
+    lead_result = await db.execute(lead_stmt)
+    lead = lead_result.scalar_one_or_none()
+
     max_history = agent_settings.max_history_messages or 15
     msg_stmt = (
         select(Message)
@@ -168,7 +189,7 @@ async def process_incoming_lead_message(
     msg_result = await db.execute(msg_stmt)
     messages = list(reversed(msg_result.scalars().all()))
 
-    system_prompt = build_system_prompt(agent_settings)
+    system_prompt = build_system_prompt(agent_settings, lead_memory=lead.memory if lead else [])
     ai_messages = build_openai_messages_payload(
         system_prompt=system_prompt,
         history_messages=messages,
@@ -226,6 +247,24 @@ async def process_incoming_lead_message(
                         "tool_call_id": tool_call.id,
                         "name": func_name,
                         "content": json.dumps({"status": "success", "message": "Agendamento confirmado."})
+                    })
+                    
+                elif func_name == "save_lead_memory":
+                    fact = (args.get("fact") or "").strip()
+                    if fact and lead:
+                        current_memory = list(lead.memory or [])
+                        current_memory.append({
+                            "fact": fact,
+                            "at": datetime.now(zoneinfo.ZoneInfo("America/Sao_Paulo")).isoformat()
+                        })
+                        lead.memory = current_memory
+                        await db.commit()
+
+                    ai_messages.append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "name": func_name,
+                        "content": json.dumps({"status": "saved"})
                     })
                     
         response = await client.chat.completions.create(

@@ -1,3 +1,4 @@
+import json
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from app.models import AgentSettings, Message, Lead
@@ -73,6 +74,12 @@ async def test_process_incoming_lead_message_enabled():
         max_history_messages=15,
     )
 
+    test_lead = Lead(
+        id=1,
+        phone="5511999999999",
+        memory=[],
+    )
+
     lead_message = Message(
         id=10,
         lead_id=1,
@@ -81,19 +88,22 @@ async def test_process_incoming_lead_message_enabled():
         chat_id="5511999999999@c.us",
     )
 
-    # First db.execute for settings, second for messages
+    # First db.execute for settings, second for lead, third for messages
     mock_settings_res = MagicMock()
     mock_settings_res.scalar_one_or_none.return_value = settings
+
+    mock_lead_res = MagicMock()
+    mock_lead_res.scalar_one_or_none.return_value = test_lead
 
     mock_msgs_res = MagicMock()
     mock_msgs_res.scalars.return_value.all.return_value = [lead_message]
 
-    db.execute.side_effect = [mock_settings_res, mock_msgs_res]
+    db.execute.side_effect = [mock_settings_res, mock_lead_res, mock_msgs_res]
 
     # Mock OpenAI AsyncClient
     mock_openai_instance = AsyncMock()
     mock_response = MagicMock()
-    mock_response.choices = [MagicMock(message=MagicMock(content="O valor é R$ 500.000."))]
+    mock_response.choices = [MagicMock(message=MagicMock(content="O valor é R$ 500.000.", tool_calls=None))]
     mock_openai_instance.chat.completions.create.return_value = mock_response
 
     with patch("app.services.agent_service.AsyncOpenAI", return_value=mock_openai_instance) as mock_openai_cls, \
@@ -123,6 +133,90 @@ async def test_process_incoming_lead_message_enabled():
 
         # Check send_waha_message invocation
         mock_send_waha.assert_called_once_with("5511999999999@c.us", "O valor é R$ 500.000.")
+
+
+@pytest.mark.asyncio
+async def test_process_incoming_lead_save_memory_tool():
+    db = AsyncMock()
+    db.add = MagicMock()
+
+    settings = AgentSettings(
+        id=1,
+        is_enabled=True,
+        openai_api_key="sk-valid-key",
+        model="gpt-4o-mini",
+        max_history_messages=15,
+    )
+
+    test_lead = Lead(
+        id=1,
+        phone="5511999999999",
+        memory=[],
+    )
+
+    lead_message = Message(
+        id=10,
+        lead_id=1,
+        body="Tenho uma barbearia chamada Silva Barber",
+        from_me=False,
+        chat_id="5511999999999@c.us",
+    )
+
+    mock_settings_res = MagicMock()
+    mock_settings_res.scalar_one_or_none.return_value = settings
+
+    mock_lead_res = MagicMock()
+    mock_lead_res.scalar_one_or_none.return_value = test_lead
+
+    mock_msgs_res = MagicMock()
+    mock_msgs_res.scalars.return_value.all.return_value = [lead_message]
+
+    db.execute.side_effect = [mock_settings_res, mock_lead_res, mock_msgs_res]
+
+    # Mock tool call in response 1
+    mock_tool_call = MagicMock()
+    mock_tool_call.id = "call_mem_123"
+    mock_tool_call.type = "function"
+    mock_tool_call.function.name = "save_lead_memory"
+    mock_tool_call.function.arguments = '{"fact": "Nome do negócio é Silva Barber"}'
+
+    mock_msg1 = MagicMock()
+    mock_msg1.content = None
+    mock_msg1.tool_calls = [mock_tool_call]
+    mock_resp1 = MagicMock()
+    mock_resp1.choices = [MagicMock(message=mock_msg1)]
+
+    mock_msg2 = MagicMock()
+    mock_msg2.content = "Anotado! Qual a sua maior dificuldade hoje?"
+    mock_msg2.tool_calls = None
+    mock_resp2 = MagicMock()
+    mock_resp2.choices = [MagicMock(message=mock_msg2)]
+
+    mock_openai_instance = AsyncMock()
+    mock_openai_instance.chat.completions.create.side_effect = [mock_resp1, mock_resp2]
+
+    with patch("app.services.agent_service.AsyncOpenAI", return_value=mock_openai_instance), \
+         patch("app.services.agent_service.send_waha_message", new_callable=AsyncMock) as mock_send_waha:
+
+        res = await process_incoming_lead_message(db, lead_id=1, chat_id="5511999999999@c.us")
+
+        assert res is True
+        assert mock_openai_instance.chat.completions.create.call_count == 2
+
+        # Verify fact was saved into test_lead.memory
+        assert len(test_lead.memory) == 1
+        assert test_lead.memory[0]["fact"] == "Nome do negócio é Silva Barber"
+        assert "at" in test_lead.memory[0]
+
+        # Verify tool response message appended in second OpenAI call
+        second_call_messages = mock_openai_instance.chat.completions.create.call_args_list[1].kwargs["messages"]
+        tool_resp = next(m for m in second_call_messages if isinstance(m, dict) and m.get("role") == "tool")
+        assert tool_resp["name"] == "save_lead_memory"
+        assert tool_resp["tool_call_id"] == "call_mem_123"
+        assert json.loads(tool_resp["content"]) == {"status": "saved"}
+
+        mock_send_waha.assert_called_once_with("5511999999999@c.us", "Anotado! Qual a sua maior dificuldade hoje?")
+
 
 
 @pytest.mark.asyncio
