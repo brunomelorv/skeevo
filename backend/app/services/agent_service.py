@@ -224,6 +224,7 @@ async def process_incoming_lead_message(
         lead_memory=lead.memory if lead else [],
         lessons=lessons,
         kanban_columns=kanban_columns,
+        current_status=lead.status if lead else None,
     )
     ai_messages = build_openai_messages_payload(
         system_prompt=system_prompt,

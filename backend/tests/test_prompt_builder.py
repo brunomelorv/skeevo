@@ -14,7 +14,8 @@ def test_build_system_prompt():
     prompt = build_system_prompt(settings)
     assert "# Diretrizes do Agente" in prompt
     assert "<data_e_hora_atual>" in prompt
-    assert "<instrucoes_de_ferramentas>" in prompt
+    assert "<etapa_atual_do_lead>" in prompt
+    assert "<instrucoes_de_movimentacao_kanban>" in prompt
     assert "<identidade>" in prompt
     assert "Você é uma corretora experiente." in prompt
     assert "<instrucoes>" in prompt

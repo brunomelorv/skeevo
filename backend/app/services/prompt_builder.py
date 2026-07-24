@@ -7,6 +7,7 @@ def build_system_prompt(
     lead_memory: list = None,
     lessons: list = None,
     kanban_columns: list = None,
+    current_status: str = None,
 ) -> str:
     def _get_val(obj, key, default=""):
         if isinstance(obj, dict):
@@ -24,6 +25,7 @@ def build_system_prompt(
 
     tz = zoneinfo.ZoneInfo("America/Sao_Paulo")
     now_str = datetime.now(tz).strftime("%A, %d de %B de %Y, %H:%M")
+    current_status_str = current_status or "novo"
 
     formatted_examples = []
     for idx, ex in enumerate(exemplos_raw):
@@ -95,6 +97,10 @@ def build_system_prompt(
 Agente: {agent_name}
 Empresa: {business_name}
 
+<etapa_atual_do_lead>
+Slug atual do Kanban: "{current_status_str}"
+</etapa_atual_do_lead>
+
 <identidade>
 {identidade}
 </identidade>
@@ -103,10 +109,12 @@ Empresa: {business_name}
 {instrucoes}
 </instrucoes>
 
-<instrucoes_de_ferramentas>
-- Sempre que o objetivo de uma etapa do Kanban for alcançado durante a conversa, chame a ferramenta `move_lead_kanban` para mover o lead para o slug correspondente.
-- Ao agendar uma reunião via `book_appointment`, você também DEVE chamar `move_lead_kanban` para mover o lead para a coluna de reunião.
-</instrucoes_de_ferramentas>
+<instrucoes_de_movimentacao_kanban>
+A cada mensagem recebida, compare o histórico de conversas do lead com os objetivos definidos em <etapas_kanban>.
+Se o estado ou ação do lead corresponder ao objetivo de UMA ETAPA DIFERENTE da sua <etapa_atual_do_lead>, você DEVE obrigatoriamente chamar a ferramenta `move_lead_kanban(target_slug, reason)` para mover o lead.
+- Se o objetivo diz que a etapa é para quando o cliente mandar mais de uma mensagem e o histórico contiver 2 ou mais mensagens do lead, chame `move_lead_kanban`.
+- Se agendar uma reunião (`book_appointment`), chame também `move_lead_kanban` para a coluna de reunião.
+</instrucoes_de_movimentacao_kanban>
 
 <etapas_kanban>
 {kanban_block}
