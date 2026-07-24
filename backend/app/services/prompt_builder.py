@@ -1,3 +1,7 @@
+from datetime import datetime
+import zoneinfo
+
+
 def build_system_prompt(
     settings,
     lead_memory: list = None,
@@ -17,6 +21,9 @@ def build_system_prompt(
     instrucoes = _get_val(settings, 'instrucoes', '')
     contexto = _get_val(settings, 'contexto', '')
     exemplos_raw = _get_val(settings, 'exemplos', []) or []
+
+    tz = zoneinfo.ZoneInfo("America/Sao_Paulo")
+    now_str = datetime.now(tz).strftime("%A, %d de %B de %Y, %H:%M")
 
     formatted_examples = []
     for idx, ex in enumerate(exemplos_raw):
@@ -81,6 +88,10 @@ def build_system_prompt(
 
     return f"""# Diretrizes do Agente
 
+<data_e_hora_atual>
+{now_str} (Horário de Brasília)
+</data_e_hora_atual>
+
 Agente: {agent_name}
 Empresa: {business_name}
 
@@ -91,6 +102,11 @@ Empresa: {business_name}
 <instrucoes>
 {instrucoes}
 </instrucoes>
+
+<instrucoes_de_ferramentas>
+- Sempre que o objetivo de uma etapa do Kanban for alcançado durante a conversa, chame a ferramenta `move_lead_kanban` para mover o lead para o slug correspondente.
+- Ao agendar uma reunião via `book_appointment`, você também DEVE chamar `move_lead_kanban` para mover o lead para a coluna de reunião.
+</instrucoes_de_ferramentas>
 
 <etapas_kanban>
 {kanban_block}
@@ -111,6 +127,7 @@ Empresa: {business_name}
 <contexto>
 {contexto}
 </contexto>"""
+
 
 
 

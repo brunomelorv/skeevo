@@ -38,7 +38,7 @@ AGENDA_TOOLS = [
         "type": "function",
         "function": {
             "name": "book_appointment",
-            "description": "Realiza o agendamento da reunião para o lead.",
+            "description": "Realiza o agendamento da reunião para o lead e altera seu estágio no Kanban para a coluna de reunião.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -275,6 +275,45 @@ async def process_incoming_lead_message(
                         status="scheduled"
                     )
                     db.add(new_appt)
+
+                    if lead:
+                        target_col = next(
+                            (c for c in kanban_columns if c.slug in ("reuniao", "qualificado") or c.outcome_signal == "positivo"),
+                            None
+                        )
+                        if target_col and lead.status != target_col.slug:
+                            old_status = lead.status
+                            lead.status = target_col.slug
+                            lead.updated_at = datetime.now(tz)
+
+                            lead_identifier = lead.push_name or lead.name or lead.phone
+                            audit_entry = AuditLogModel(
+                                category="lead_movement",
+                                action="ai_status_changed",
+                                entity_type="lead",
+                                entity_id=str(lead.id),
+                                title=f"IA agendou reunião e moveu '{lead_identifier}': '{old_status}' → '{target_col.slug}'",
+                                details={
+                                    "lead_id": lead.id,
+                                    "previous_status": old_status,
+                                    "new_status": target_col.slug,
+                                    "reason": f"Agendamento de reunião: {summary}",
+                                },
+                            )
+                            db.add(audit_entry)
+
+                            from app.routes.followup import get_or_create_config, cancel_lead_followups, schedule_lead_followups
+                            config = await get_or_create_config(db)
+                            target_statuses = config.target_statuses or []
+                            if target_col.slug not in target_statuses:
+                                await cancel_lead_followups(db, lead.id, reason=f"ai_moved_to_{target_col.slug}")
+                            else:
+                                await schedule_lead_followups(db, lead)
+
+                            if target_col.outcome_signal in ("positivo", "negativo"):
+                                from app.services.lesson_service import analyze_lead_outcome
+                                asyncio.create_task(analyze_lead_outcome(lead.id, target_col.outcome_signal))
+
                     await db.commit()
                     
                     ai_messages.append({
