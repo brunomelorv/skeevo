@@ -11,10 +11,12 @@ def test_build_system_prompt():
         contexto="Temos apartamentos no centro.",
         exemplos=[ExamplePair(lead="Valores?", reply="A partir de R$ 300k.")],
     )
-    prompt = build_system_prompt(settings)
+    prompt = build_system_prompt(settings, lead_message_count=3)
     assert "# Diretrizes do Agente" in prompt
     assert "<data_e_hora_atual>" in prompt
     assert "<etapa_atual_do_lead>" in prompt
+    assert "<estatisticas_da_conversa>" in prompt
+    assert "Total de mensagens enviadas pelo lead nesta conversa: 3" in prompt
     assert "<instrucoes_de_seguranca>" in prompt
     assert "<instrucoes_de_movimentacao_kanban>" in prompt
     assert "<identidade>" in prompt

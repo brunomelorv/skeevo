@@ -219,12 +219,15 @@ async def process_incoming_lead_message(
     cols_result = await db.execute(cols_stmt)
     kanban_columns = cols_result.scalars().all()
 
+    lead_msg_count = sum(1 for m in messages if not getattr(m, "from_me", False))
+
     system_prompt = build_system_prompt(
         agent_settings,
         lead_memory=lead.memory if lead else [],
         lessons=lessons,
         kanban_columns=kanban_columns,
         current_status=lead.status if lead else None,
+        lead_message_count=lead_msg_count,
     )
     ai_messages = build_openai_messages_payload(
         system_prompt=system_prompt,
